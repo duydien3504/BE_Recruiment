@@ -17,6 +17,10 @@ app.use(morgan('dev')); // Logging request
 // Swagger UI Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// API Routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/v1/auth', authRoutes);
+
 // Base Route
 app.get('/', (req, res) => {
     res.json({
