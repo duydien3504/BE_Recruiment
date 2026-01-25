@@ -23,6 +23,11 @@ const JobPost = sequelize.define('JobPost', {
         allowNull: false,
         field: 'location_id'
     },
+    levelId: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        field: 'level_id'
+    },
     title: {
         type: DataTypes.STRING(500),
         allowNull: false

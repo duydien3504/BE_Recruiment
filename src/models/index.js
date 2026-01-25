@@ -9,6 +9,7 @@ const Category = require('./Category');
 const Location = require('./Location');
 const Skill = require('./Skill');
 const JobPost = require('./JobPost');
+const Level = require('./Level');
 const JobSkill = require('./JobSkill');
 const Resume = require('./Resume');
 const UserSkill = require('./UserSkill');
@@ -46,6 +47,10 @@ Category.hasMany(JobPost, { foreignKey: 'categoryId', as: 'jobPosts' });
 // JobPost - Location (Many-to-One)
 JobPost.belongsTo(Location, { foreignKey: 'locationId', as: 'location' });
 Location.hasMany(JobPost, { foreignKey: 'locationId', as: 'jobPosts' });
+
+// JobPost - Level (Many-to-One)
+JobPost.belongsTo(Level, { foreignKey: 'levelId', as: 'level' });
+Level.hasMany(JobPost, { foreignKey: 'levelId', as: 'jobPosts' });
 
 // JobPost - Skill (Many-to-Many through JobSkill)
 JobPost.belongsToMany(Skill, { through: JobSkill, foreignKey: 'jobPostId', otherKey: 'skillId', as: 'skills' });
@@ -120,6 +125,7 @@ module.exports = {
     Company,
     Category,
     Location,
+    Level,
     Skill,
     JobPost,
     JobSkill,
