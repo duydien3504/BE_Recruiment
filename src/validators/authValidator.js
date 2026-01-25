@@ -59,6 +59,67 @@ const validate = (schema) => {
     };
 };
 
+const loginSchema = Joi.object({
+    email: Joi.string()
+        .email()
+        .required()
+        .messages({
+            'string.email': MESSAGES.EMAIL_INVALID,
+            'any.required': MESSAGES.EMAIL_REQUIRED,
+            'string.empty': MESSAGES.EMAIL_REQUIRED
+        }),
+
+    password: Joi.string()
+        .required()
+        .messages({
+            'any.required': MESSAGES.PASSWORD_REQUIRED,
+            'string.empty': MESSAGES.PASSWORD_REQUIRED
+        })
+});
+
+const forgotPasswordSchema = Joi.object({
+    email: Joi.string()
+        .email()
+        .required()
+        .messages({
+            'string.email': MESSAGES.EMAIL_INVALID,
+            'any.required': MESSAGES.EMAIL_REQUIRED,
+            'string.empty': MESSAGES.EMAIL_REQUIRED
+        })
+});
+
+const verifyOtpSchema = Joi.object({
+    email: Joi.string()
+        .email()
+        .required()
+        .messages({
+            'string.email': MESSAGES.EMAIL_INVALID,
+            'any.required': MESSAGES.EMAIL_REQUIRED,
+            'string.empty': MESSAGES.EMAIL_REQUIRED
+        }),
+    otp: Joi.string()
+        .pattern(/^\d{6}$/)
+        .required()
+        .messages({
+            'string.pattern.base': MESSAGES.OTP_PATTERN,
+            'any.required': MESSAGES.OTP_REQUIRED,
+            'string.empty': MESSAGES.OTP_REQUIRED
+        })
+});
+
+const refreshTokenSchema = Joi.object({
+    refreshToken: Joi.string()
+        .required()
+        .messages({
+            'any.required': MESSAGES.REFRESH_TOKEN_REQUIRED,
+            'string.empty': MESSAGES.REFRESH_TOKEN_REQUIRED
+        })
+});
+
 module.exports = {
-    validateRegister: validate(registerSchema)
+    validateRegister: validate(registerSchema),
+    validateLogin: validate(loginSchema),
+    validateForgotPassword: validate(forgotPasswordSchema),
+    validateVerifyOtp: validate(verifyOtpSchema),
+    validateRefreshToken: validate(refreshTokenSchema)
 };

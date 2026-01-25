@@ -3,7 +3,6 @@ const AuthService = require('../../src/services/AuthService');
 const MESSAGES = require('../../src/constant/messages');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 
-// Mock AuthService
 jest.mock('../../src/services/AuthService');
 
 describe('AuthController', () => {
@@ -73,6 +72,223 @@ describe('AuthController', () => {
             AuthService.register.mockRejectedValue(mockError);
 
             await AuthController.register(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe('login', () => {
+        test('should return 200 and success message on successful login', async () => {
+            const mockResult = {
+                accessToken: 'mock-access-token',
+                refreshToken: 'mock-refresh-token',
+                user: {
+                    userId: 'uuid-123',
+                    role: 'Candidate',
+                    fullName: 'Nguyen Van A'
+                }
+            };
+
+            req.body = {
+                email: 'test@example.com',
+                password: 'Password123'
+            };
+
+            AuthService.login.mockResolvedValue(mockResult);
+
+            await AuthController.login(req, res, next);
+
+            expect(AuthService.login).toHaveBeenCalledWith(req.body);
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                message: MESSAGES.LOGIN_SUCCESS,
+                data: mockResult
+            });
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('should call next with error when credentials are invalid', async () => {
+            const mockError = new Error(MESSAGES.INVALID_CREDENTIALS);
+            mockError.status = HTTP_STATUS.UNAUTHORIZED;
+
+            req.body = {
+                email: 'test@example.com',
+                password: 'WrongPassword'
+            };
+
+            AuthService.login.mockRejectedValue(mockError);
+
+            await AuthController.login(req, res, next);
+
+            expect(AuthService.login).toHaveBeenCalledWith(req.body);
+            expect(next).toHaveBeenCalledWith(mockError);
+            expect(res.status).not.toHaveBeenCalled();
+            expect(res.json).not.toHaveBeenCalled();
+        });
+
+        test('should call next with error when account is locked', async () => {
+            const mockError = new Error(MESSAGES.ACCOUNT_LOCKED);
+            mockError.status = HTTP_STATUS.FORBIDDEN;
+
+            req.body = {
+                email: 'banned@example.com',
+                password: 'Password123'
+            };
+
+            AuthService.login.mockRejectedValue(mockError);
+
+            await AuthController.login(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+            expect(res.status).not.toHaveBeenCalled();
+        });
+
+        test('should call next with error when account is not verified', async () => {
+            const mockError = new Error(MESSAGES.ACCOUNT_NOT_VERIFIED);
+            mockError.status = HTTP_STATUS.FORBIDDEN;
+
+            req.body = {
+                email: 'inactive@example.com',
+                password: 'Password123'
+            };
+
+            AuthService.login.mockRejectedValue(mockError);
+
+            await AuthController.login(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+
+        test('should pass any service error to error handler middleware', async () => {
+            const mockError = new Error('Database connection failed');
+
+            AuthService.login.mockRejectedValue(mockError);
+
+            await AuthController.login(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+
+        test('should not call response methods when error occurs', async () => {
+            const mockError = new Error('Some error');
+            AuthService.login.mockRejectedValue(mockError);
+
+            await AuthController.login(req, res, next);
+
+            expect(res.status).not.toHaveBeenCalled();
+            expect(res.json).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('forgotPassword', () => {
+        test('should return 200 and success message on successful OTP send', async () => {
+            const mockResult = {
+                email: 'test@example.com'
+            };
+
+            req.body = {
+                email: 'test@example.com'
+            };
+
+            AuthService.forgotPassword.mockResolvedValue(mockResult);
+
+            await AuthController.forgotPassword(req, res, next);
+
+            expect(AuthService.forgotPassword).toHaveBeenCalledWith(req.body);
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                message: MESSAGES.OTP_SENT_SUCCESS,
+                data: mockResult
+            });
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('should call next with error when email not found', async () => {
+            const mockError = new Error(MESSAGES.EMAIL_NOT_FOUND);
+            mockError.status = HTTP_STATUS.NOT_FOUND;
+
+            req.body = {
+                email: 'notfound@example.com'
+            };
+
+            AuthService.forgotPassword.mockRejectedValue(mockError);
+
+            await AuthController.forgotPassword(req, res, next);
+
+            expect(AuthService.forgotPassword).toHaveBeenCalledWith(req.body);
+            expect(next).toHaveBeenCalledWith(mockError);
+            expect(res.status).not.toHaveBeenCalled();
+            expect(res.json).not.toHaveBeenCalled();
+        });
+
+        test('should pass any service error to error handler middleware', async () => {
+            const mockError = new Error('Database connection failed');
+
+            AuthService.forgotPassword.mockRejectedValue(mockError);
+
+            await AuthController.forgotPassword(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+
+        test('should not call response methods when error occurs', async () => {
+            const mockError = new Error('Some error');
+            AuthService.forgotPassword.mockRejectedValue(mockError);
+
+            await AuthController.forgotPassword(req, res, next);
+
+            expect(res.status).not.toHaveBeenCalled();
+            expect(res.json).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('refreshToken', () => {
+        test('should return 200 and access token when successful', async () => {
+            const mockResult = { accessToken: 'new-access-token' };
+            req.body = { refreshToken: 'valid-token' };
+            AuthService.refreshToken.mockResolvedValue(mockResult);
+
+            await AuthController.refreshToken(req, res, next);
+
+            expect(AuthService.refreshToken).toHaveBeenCalledWith(req.body);
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                message: MESSAGES.REFRESH_TOKEN_SUCCESS,
+                data: mockResult
+            });
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('should call next with error when service fails', async () => {
+            const mockError = new Error(MESSAGES.INVALID_TOKEN);
+            mockError.status = HTTP_STATUS.UNAUTHORIZED;
+            AuthService.refreshToken.mockRejectedValue(mockError);
+
+            await AuthController.refreshToken(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+    });
+
+    describe('logout', () => {
+        test('should return 200 and success message', async () => {
+            req.body = { refreshToken: 'some-token' };
+            AuthService.logout.mockResolvedValue(true);
+
+            await AuthController.logout(req, res, next);
+
+            expect(AuthService.logout).toHaveBeenCalledWith(req.body);
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                message: MESSAGES.LOGOUT_SUCCESS
+            });
+        });
+
+        test('should call next with error when service fails', async () => {
+            const mockError = new Error('Some error');
+            AuthService.logout.mockRejectedValue(mockError);
+
+            await AuthController.logout(req, res, next);
 
             expect(next).toHaveBeenCalledWith(mockError);
         });
