@@ -56,4 +56,33 @@ const authenticateToken = async (req, res, next) => {
     }
 };
 
-module.exports = { authenticateToken };
+const optionalAuthenticateToken = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader) return next();
+
+        const token = authHeader.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : authHeader;
+
+        if (!token) return next();
+
+        const decoded = jwtHelper.verifyAccessToken(token);
+        const user = await UserRepository.findById(decoded.userId);
+
+        if (user) {
+            req.user = {
+                userId: user.userId,
+                email: user.email,
+                role: user.role, // Make sure role is string (if virtual getter) or object
+                fullName: user.fullName
+            };
+        }
+        next();
+    } catch (error) {
+        // Ignore headers errors, treat as guest
+        next();
+    }
+};
+
+module.exports = { authenticateToken, optionalAuthenticateToken };
