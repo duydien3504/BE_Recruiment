@@ -20,9 +20,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // API Routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const companyRoutes = require('./routes/companyRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/companies', companyRoutes);
+app.use('/api/v1/jobs', jobRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

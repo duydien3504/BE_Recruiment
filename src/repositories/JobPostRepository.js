@@ -16,7 +16,10 @@ class JobPostRepository extends BaseRepository {
     }
 
     async search(filters = {}, options = {}) {
-        const where = { isDeleted: false };
+        const where = {
+            isDeleted: false,
+            status: 'Active' // Public search -> Active only
+        };
 
         if (filters.keyword) {
             where.title = { [Op.like]: `%${filters.keyword}%` };
@@ -27,11 +30,23 @@ class JobPostRepository extends BaseRepository {
         if (filters.locationId) {
             where.locationId = filters.locationId;
         }
-        if (filters.status) {
-            where.status = filters.status;
-        }
 
-        return await this.findAll(where, options);
+        return await this.findAndCountAll(where, {
+            ...options,
+            include: [
+                {
+                    model: require('../models').Company,
+                    as: 'company',
+                    attributes: ['companyId', 'name', 'logoUrl']
+                },
+                {
+                    model: require('../models').Location,
+                    as: 'location',
+                    attributes: ['name']
+                }
+            ],
+            order: [['created_at', 'DESC']]
+        });
     }
 
     async updateStatus(jobPostId, status, rejectionReason = null) {
@@ -48,6 +63,26 @@ class JobPostRepository extends BaseRepository {
             return await job.update({ editCount: job.editCount + 1 });
         }
         return null;
+    }
+
+    async findActiveJobsByCompany(companyId, options = {}) {
+        return await this.findAll({
+            companyId,
+            status: 'Active',
+            isDeleted: false
+        }, options);
+    }
+
+    async getDetail(jobPostId) {
+        return await this.findById(jobPostId, {
+            include: [
+                { model: require('../models').Company, as: 'company' },
+                { model: require('../models').Location, as: 'location', attributes: ['name'] },
+                { model: require('../models').Category, as: 'category', attributes: ['name'] },
+                { model: require('../models').Level, as: 'level', attributes: ['name'] },
+                { model: require('../models').Skill, as: 'skills', through: { attributes: [] } }
+            ]
+        });
     }
 }
 

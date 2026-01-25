@@ -29,6 +29,38 @@ class CompanyRepository extends BaseRepository {
     async updateStatus(companyId, status) {
         return await this.update(companyId, { status });
     }
+
+    async getDetail(companyId) {
+        return await this.findById(companyId, {
+            include: [{
+                model: require('../models').JobPost,
+                as: 'jobPosts',
+                where: { isDeleted: false, status: 'Active' },
+                required: false // LEFT JOIN
+            }]
+        });
+    }
+
+    async getCompanies(filter) {
+        const { keyword, page, limit } = filter;
+        const offset = (page - 1) * limit;
+
+        const where = {
+            isDeleted: false,
+            status: 'Active'
+        };
+
+        if (keyword) {
+            where.name = { [Op.like]: `%${keyword}%` };
+        }
+
+        return await this.findAndCountAll(where, {
+            limit,
+            offset,
+            order: [['created_at', 'DESC']],
+            attributes: ['companyId', 'name', 'logoUrl', 'scale', 'description', 'addressDetail']
+        });
+    }
 }
 
 module.exports = new CompanyRepository();
