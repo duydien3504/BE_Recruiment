@@ -23,12 +23,18 @@ const userRoutes = require('./routes/userRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const employerRoutes = require('./routes/employerRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const resumeRoutes = require('./routes/resumeRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/companies', companyRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/employer', employerRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/resumes', resumeRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

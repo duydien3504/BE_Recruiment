@@ -27,7 +27,7 @@ describe('authMiddleware', () => {
         const mockUser = {
             userId: 'uuid-123',
             email: 'test@example.com',
-            role: 'seeker',
+            role: { roleName: 'seeker' },
             fullName: 'Test User'
         };
 
@@ -39,7 +39,7 @@ describe('authMiddleware', () => {
             await authenticateToken(req, res, next);
 
             expect(jwtHelper.verifyAccessToken).toHaveBeenCalledWith('valid-token');
-            expect(UserRepository.findById).toHaveBeenCalledWith('uuid-123');
+            expect(UserRepository.findById).toHaveBeenCalledWith('uuid-123', expect.any(Object));
             expect(req.user).toEqual({
                 userId: 'uuid-123',
                 email: 'test@example.com',

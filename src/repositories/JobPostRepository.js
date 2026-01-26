@@ -7,8 +7,15 @@ class JobPostRepository extends BaseRepository {
         super(JobPost);
     }
 
-    async findByCompany(companyId, options = {}) {
-        return await this.findAll({ companyId, isDeleted: false }, options);
+    async findByCompany(companyId, filters = {}, options = {}) {
+        const where = { companyId, isDeleted: false };
+        if (filters.status) {
+            where.status = filters.status;
+        }
+        return await this.findAll(where, {
+            ...options,
+            order: [['created_at', 'DESC']]
+        });
     }
 
     async findByStatus(status, options = {}) {
@@ -82,6 +89,26 @@ class JobPostRepository extends BaseRepository {
                 { model: require('../models').Level, as: 'level', attributes: ['name'] },
                 { model: require('../models').Skill, as: 'skills', through: { attributes: [] } }
             ]
+        });
+    }
+
+    async getAllJobs(filters = {}, options = {}) {
+        const where = { isDeleted: false };
+
+        if (filters.status) where.status = filters.status;
+        if (filters.companyId) where.companyId = filters.companyId;
+        if (filters.keyword) where.title = { [Op.like]: `%${filters.keyword}%` };
+
+        return await this.findAndCountAll(where, {
+            ...options,
+            include: [
+                {
+                    model: require('../models').Company,
+                    as: 'company',
+                    attributes: ['companyId', 'name']
+                }
+            ],
+            order: [['created_at', 'DESC']]
         });
     }
 }

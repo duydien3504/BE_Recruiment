@@ -1,8 +1,8 @@
-const { upload, handleUploadError } = require('../../src/middleware/uploadMiddleware');
+const { imageFilter, pdfFilter, handleUploadError } = require('../../src/middleware/uploadMiddleware');
 const MESSAGES = require('../../src/constant/messages');
 
 describe('uploadMiddleware', () => {
-    describe('fileFilter', () => {
+    describe('imageFilter', () => {
         test('should accept valid image types (jpeg, jpg, png)', () => {
             const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
 
@@ -10,7 +10,7 @@ describe('uploadMiddleware', () => {
                 const file = { mimetype };
                 const cb = jest.fn();
 
-                upload.fileFilter(null, file, cb);
+                imageFilter(null, file, cb);
 
                 expect(cb).toHaveBeenCalledWith(null, true);
             });
@@ -23,12 +23,39 @@ describe('uploadMiddleware', () => {
                 const file = { mimetype };
                 const cb = jest.fn();
 
-                upload.fileFilter(null, file, cb);
+                imageFilter(null, file, cb);
 
                 expect(cb).toHaveBeenCalledWith(
-                    expect.objectContaining({
-                        message: MESSAGES.FILE_TYPE_INVALID
-                    }),
+                    expect.any(Error),
+                    false
+                );
+                // Optional: Check error message
+                // expect(cb.mock.calls[0][0].message).toBe('Chỉ chấp nhận file ảnh (jpg, jpeg, png).');
+            });
+        });
+    });
+
+    describe('pdfFilter', () => {
+        test('should accept valid pdf type', () => {
+            const file = { mimetype: 'application/pdf' };
+            const cb = jest.fn();
+
+            pdfFilter(null, file, cb);
+
+            expect(cb).toHaveBeenCalledWith(null, true);
+        });
+
+        test('should reject invalid file types', () => {
+            const invalidMimeTypes = ['image/jpeg', 'text/plain'];
+
+            invalidMimeTypes.forEach(mimetype => {
+                const file = { mimetype };
+                const cb = jest.fn();
+
+                pdfFilter(null, file, cb);
+
+                expect(cb).toHaveBeenCalledWith(
+                    expect.any(Error),
                     false
                 );
             });

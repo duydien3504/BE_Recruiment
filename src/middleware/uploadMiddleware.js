@@ -4,24 +4,36 @@ const MESSAGES = require('../constant/messages');
 // Multer memory storage (không lưu file vào disk)
 const storage = multer.memoryStorage();
 
-// File filter - chỉ chấp nhận image
-const fileFilter = (req, file, cb) => {
+// Image filter
+const imageFilter = (req, file, cb) => {
     const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error(MESSAGES.FILE_TYPE_INVALID), false);
+        cb(new Error('Chỉ chấp nhận file ảnh (jpg, jpeg, png).'), false);
     }
 };
 
-// Multer config
-const upload = multer({
-    storage: storage,
-    fileFilter: fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB
+// PDF filter
+const pdfFilter = (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+        cb(null, true);
+    } else {
+        cb(new Error('Chỉ chấp nhận file PDF.'), false);
     }
+};
+
+// Configs
+const uploadImage = multer({
+    storage: storage,
+    fileFilter: imageFilter,
+    limits: { fileSize: 5 * 1024 * 1024 }
+});
+
+const uploadPdf = multer({
+    storage: storage,
+    fileFilter: pdfFilter,
+    limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 // Middleware xử lý lỗi upload
@@ -50,6 +62,10 @@ const handleUploadError = (err, req, res, next) => {
 };
 
 module.exports = {
-    upload,
-    handleUploadError
+    uploadImage,
+    uploadPdf,
+    handleUploadError,
+    // Export for testing
+    imageFilter,
+    pdfFilter
 };
