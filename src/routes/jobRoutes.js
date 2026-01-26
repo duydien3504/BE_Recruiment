@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const JobController = require('../controllers/JobController');
 const { optionalAuthenticateToken, authenticateToken } = require('../middleware/authMiddleware');
+const { validateUpdateJob, validateUpdateJobStatus } = require('../validators/jobValidator');
 
 /**
  * @swagger
@@ -151,5 +152,114 @@ router.post('/', authenticateToken, JobController.createJob);
  *         description: Không tìm thấy việc làm
  */
 router.get('/:id', optionalAuthenticateToken, JobController.getJobDetail);
+
+/**
+ * @swagger
+ * /api/v1/jobs/{id}:
+ *   put:
+ *     summary: Cập nhật tin tuyển dụng (Employer)
+ *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               requirements:
+ *                 type: string
+ *               category_id:
+ *                 type: integer
+ *               location_id:
+ *                 type: integer
+ *               level_id:
+ *                 type: integer
+ *               salary_min:
+ *                 type: number
+ *               salary_max:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ *       403:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy việc làm
+ */
+router.put('/:id', authenticateToken, validateUpdateJob, JobController.updateJob);
+
+/**
+ * @swagger
+ * /api/v1/jobs/{id}:
+ *   delete:
+ *     summary: Xóa tin tuyển dụng (Employer)
+ *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Đã xóa tin tuyển dụng
+ *       403:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy việc làm
+ */
+router.delete('/:id', authenticateToken, JobController.deleteJob);
+
+/**
+ * @swagger
+ * /api/v1/jobs/{id}/status:
+ *   patch:
+ *     summary: Đổi trạng thái Đóng/Mở tin (Employer)
+ *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [Active, Closed]
+ *     responses:
+ *       200:
+ *         description: Cập nhật trạng thái thành công
+ *       400:
+ *         description: Trạng thái không hợp lệ hoặc tin đã hết hạn
+ *       403:
+ *         description: Không có quyền truy cập
+ *       404:
+ *         description: Không tìm thấy việc làm
+ */
+router.patch('/:id/status', authenticateToken, validateUpdateJobStatus, JobController.updateJobStatus);
 
 module.exports = router;

@@ -29,7 +29,13 @@ const authenticateToken = async (req, res, next) => {
 
         const decoded = jwtHelper.verifyAccessToken(token);
 
-        const user = await UserRepository.findById(decoded.userId);
+        const user = await UserRepository.findById(decoded.userId, {
+            include: [{
+                model: require('../models').Role,
+                as: 'role',
+                attributes: ['roleName']
+            }]
+        });
 
         if (!user) {
             const error = new Error(MESSAGES.USER_NOT_FOUND);
@@ -40,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
         req.user = {
             userId: user.userId,
             email: user.email,
-            role: user.role,
+            role: user.role ? user.role.roleName : null,
             fullName: user.fullName
         };
 
@@ -68,13 +74,19 @@ const optionalAuthenticateToken = async (req, res, next) => {
         if (!token) return next();
 
         const decoded = jwtHelper.verifyAccessToken(token);
-        const user = await UserRepository.findById(decoded.userId);
+        const user = await UserRepository.findById(decoded.userId, {
+            include: [{
+                model: require('../models').Role,
+                as: 'role',
+                attributes: ['roleName']
+            }]
+        });
 
         if (user) {
             req.user = {
                 userId: user.userId,
                 email: user.email,
-                role: user.role, // Make sure role is string (if virtual getter) or object
+                role: user.role ? user.role.roleName : null,
                 fullName: user.fullName
             };
         }
@@ -85,4 +97,48 @@ const optionalAuthenticateToken = async (req, res, next) => {
     }
 };
 
-module.exports = { authenticateToken, optionalAuthenticateToken };
+/**
+ * Middleware phân quyền
+ * @param {Array<string>} roles - Danh sách roles cho phép
+ */
+const authorize = (roles = []) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            const error = new Error(MESSAGES.UNAUTHORIZED);
+            error.status = HTTP_STATUS.UNAUTHORIZED;
+            return next(error);
+        }
+
+        // roles có thể là string (1 role) hoặc array
+        const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+        // req.user.role có thể là string (e.g. 'Admin') hoặc object { name: 'Admin' } tùy implementation
+        // Ở authenticateToken đang gán req.user.role = user.role.
+        // Giả sử user.role là string name của role hoặc object Role
+        // Cần check kỹ implementation của RoleModel
+        // Tuy nhiên log error cho thấy req.user.role lấy từ user.role
+
+        // Tạm cover case user.role là String
+        // req.user.role lúc này đã là string RoleName (do authenticateToken map rồi)
+        const userRole = req.user.role;
+
+        if (!userRole) {
+            const error = new Error('Bạn không có quyền thực hiện hành động này.');
+            error.status = HTTP_STATUS.FORBIDDEN;
+            return next(error);
+        }
+
+        // So sánh không phân biệt hoa thường (Admin vs ADMIN)
+        const hasPermission = allowedRoles.some(role => role.toUpperCase() === userRole.toUpperCase());
+
+        if (!hasPermission) {
+            const error = new Error('Bạn không có quyền thực hiện hành động này.');
+            error.status = HTTP_STATUS.FORBIDDEN;
+            return next(error);
+        }
+
+        next();
+    };
+};
+
+module.exports = { authenticateToken, optionalAuthenticateToken, authorize };

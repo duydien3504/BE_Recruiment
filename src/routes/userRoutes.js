@@ -3,7 +3,7 @@ const router = express.Router();
 const UserController = require('../controllers/UserController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { validateUpdateProfile, validateChangePassword, validateAddSkills, validateDeleteSkill, validateUpgradeEmployer } = require('../validators/userValidator');
-const { upload, handleUploadError } = require('../middleware/uploadMiddleware');
+const { uploadImage, handleUploadError } = require('../middleware/uploadMiddleware');
 
 /**
  * @swagger
@@ -245,7 +245,7 @@ router.patch('/change-password', authenticateToken, validateChangePassword, User
  *       404:
  *         description: Người dùng không tồn tại
  */
-router.post('/avatar', authenticateToken, upload.single('file'), handleUploadError, UserController.uploadAvatar);
+router.post('/avatar', authenticateToken, uploadImage.single('file'), handleUploadError, UserController.uploadAvatar);
 
 /**
  * @swagger

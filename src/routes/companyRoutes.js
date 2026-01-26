@@ -3,7 +3,7 @@ const router = express.Router();
 const CompanyController = require('../controllers/CompanyController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { validateUpdateCompany } = require('../validators/companyValidator');
-const { upload, handleUploadError } = require('../middleware/uploadMiddleware');
+const { uploadImage, handleUploadError } = require('../middleware/uploadMiddleware');
 
 /**
  * @swagger
@@ -148,7 +148,7 @@ router.put('/me', authenticateToken, validateUpdateCompany, CompanyController.up
  *       404:
  *         description: Không tìm thấy thông tin công ty
  */
-router.post('/logo', authenticateToken, upload.single('file'), handleUploadError, CompanyController.uploadLogo);
+router.post('/logo', authenticateToken, uploadImage.single('file'), handleUploadError, CompanyController.uploadLogo);
 
 /**
  * @swagger
@@ -191,7 +191,7 @@ router.post('/logo', authenticateToken, upload.single('file'), handleUploadError
  *       404:
  *         description: Không tìm thấy thông tin công ty
  */
-router.post('/background', authenticateToken, upload.single('file'), handleUploadError, CompanyController.uploadBackground);
+router.post('/background', authenticateToken, uploadImage.single('file'), handleUploadError, CompanyController.uploadBackground);
 
 /**
  * @swagger
