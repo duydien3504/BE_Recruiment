@@ -84,9 +84,17 @@ Interview.belongsTo(Application, { foreignKey: 'applicationId', as: 'application
 User.belongsToMany(JobPost, { through: SavedJob, foreignKey: 'userId', otherKey: 'jobPostId', as: 'savedJobs' });
 JobPost.belongsToMany(User, { through: SavedJob, foreignKey: 'jobPostId', otherKey: 'userId', as: 'savedByUsers' });
 
+// SavedJob Associations (Direct access)
+SavedJob.belongsTo(JobPost, { foreignKey: 'jobPostId', as: 'jobPost' });
+SavedJob.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 // User - Follow - Company (Many-to-Many)
 User.belongsToMany(Company, { through: Follow, foreignKey: 'userId', otherKey: 'companyId', as: 'followedCompanies' });
 Company.belongsToMany(User, { through: Follow, foreignKey: 'companyId', otherKey: 'userId', as: 'followers' });
+
+// Follow Associations (Direct access)
+Follow.belongsTo(Company, { foreignKey: 'companyId', as: 'company' });
+Follow.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // User - Notification (One-to-Many)
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });

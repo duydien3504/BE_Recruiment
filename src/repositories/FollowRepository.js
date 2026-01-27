@@ -7,7 +7,19 @@ class FollowRepository extends BaseRepository {
     }
 
     async findByUser(userId, options = {}) {
-        return await this.findAll({ userId }, options);
+        const { Company } = require('../models');
+
+        return await this.findAll({ userId }, {
+            include: [
+                {
+                    model: Company,
+                    as: 'company',
+                    attributes: ['companyId', 'name', 'logoUrl', 'scale', 'websiteUrl', 'addressDetail']
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            ...options
+        });
     }
 
     async findByCompany(companyId, options = {}) {
