@@ -16,7 +16,7 @@ class ResumeService {
         // 2. Check Quota (Max 5 resumes total)
         const totalResumes = await ResumeRepository.countByUser(userId);
         if (totalResumes >= 5) {
-            const error = new Error('Bạn chỉ được phép lưu tối đa 5 hồ sơ. Vui lòng xóa bớt trước khi tải lên.');
+            const error = new Error(MESSAGES.RESUME_QUOTA_EXCEEDED);
             error.status = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
@@ -24,10 +24,12 @@ class ResumeService {
         // 3. Check Daily Limit (Max 2 resumes / day)
         const dailyCount = await ResumeRepository.countUploadedToday(userId);
         if (dailyCount >= 2) {
-            const error = new Error('Bạn chỉ được phép tải lên tối đa 2 hồ sơ trong một ngày.');
+            const error = new Error(MESSAGES.RESUME_DAILY_LIMIT_EXCEEDED);
             error.status = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
+
+
 
         // 4. Upload to Cloudinary
         const fileUrl = await uploadService.uploadToCloudinary(file.buffer, 'resumes', {
@@ -58,7 +60,7 @@ class ResumeService {
         const resume = await ResumeRepository.findById(resumeId);
 
         if (!resume) {
-            const error = new Error('CV không tồn tại.');
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
             error.status = HTTP_STATUS.NOT_FOUND;
             throw error;
         }
@@ -73,6 +75,99 @@ class ResumeService {
         // Soft delete
         return await ResumeRepository.softDelete(resumeId);
     }
+
+    /**
+     * Get user's resumes
+     * @param {string} userId
+     */
+    async getMyResumes(userId) {
+        return await ResumeRepository.findByUser(userId, {
+            order: [['created_at', 'DESC']]
+        });
+    }
+
+    /**
+     * Get resume detail
+     * @param {string} userId
+     * @param {string} resumeId
+     */
+    async getResumeDetail(userId, resumeId) {
+        const resume = await ResumeRepository.findById(resumeId);
+
+        if (!resume) {
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // Verify ownership
+        if (resume.userId !== userId) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        return resume;
+    }
+
+    /**
+     * Update resume (replace file)
+     * @param {string} userId
+     * @param {string} resumeId
+     * @param {Object} file
+     */
+    async updateResume(userId, resumeId, file) {
+        const resume = await ResumeRepository.findById(resumeId);
+
+        if (!resume) {
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (resume.userId !== userId) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        // Upload new file
+        const fileUrl = await uploadService.uploadToCloudinary(file.buffer, 'resumes', {
+            resource_type: 'raw',
+            format: 'pdf',
+            public_id: `resume_${resumeId}_${Date.now()}` // Optional: unique name
+        });
+
+        // Update DB
+        return await ResumeRepository.update(resumeId, {
+            fileUrl,
+            fileName: file.originalname
+        });
+    }
+
+    /**
+     * Set main resume
+     * @param {string} userId
+     * @param {string} resumeId
+     */
+    async setMainResume(userId, resumeId) {
+        const resume = await ResumeRepository.findById(resumeId);
+
+        if (!resume) {
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (resume.userId !== userId) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        return await ResumeRepository.setMainResume(resumeId, userId);
+    }
 }
+
 
 module.exports = new ResumeService();

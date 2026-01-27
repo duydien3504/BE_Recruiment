@@ -26,6 +26,10 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const employerRoutes = require('./routes/employerRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
+const savedJobRoutes = require('./routes/savedJobRoutes');
+const followRoutes = require('./routes/followRoutes');
+const applicationRoutes = require('./routes/applicationRoutes');
+const candidateRoutes = require('./routes/candidateRoutes');
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -35,6 +39,10 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/employer', employerRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/resumes', resumeRoutes);
+app.use('/api/v1/saved-jobs', savedJobRoutes);
+app.use('/api/v1/follows', followRoutes);
+app.use('/api/v1/applications', applicationRoutes);
+app.use('/api/v1/candidate', candidateRoutes);
 
 // Base Route
 app.get('/', (req, res) => {

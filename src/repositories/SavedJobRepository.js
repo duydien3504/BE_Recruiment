@@ -7,9 +7,42 @@ class SavedJobRepository extends BaseRepository {
     }
 
     async findByUser(userId, options = {}) {
-        return await this.findAll({ userId }, options);
-    }
 
+        const { JobPost, Company, Location, Level } = require('../models');
+
+        return await this.findAll({ userId }, {
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: [
+                        'jobPostId', 'title', 'salaryMin', 'salaryMax',
+                        'status', 'expiredAt', 'created_at', 'companyId',
+                        'locationId', 'levelId'
+                    ],
+                    include: [
+                        {
+                            model: Company,
+                            as: 'company',
+                            attributes: ['companyId', 'name', 'logoUrl', 'scale']
+                        },
+                        {
+                            model: Location,
+                            as: 'location',
+                            attributes: ['locationId', 'name']
+                        },
+                        {
+                            model: Level,
+                            as: 'level',
+                            attributes: ['levelId', 'name']
+                        }
+                    ]
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            ...options
+        });
+    }
     async checkSaved(userId, jobPostId) {
         return await this.findOne({ userId, jobPostId });
     }

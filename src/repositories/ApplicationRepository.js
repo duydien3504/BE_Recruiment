@@ -7,11 +7,56 @@ class ApplicationRepository extends BaseRepository {
     }
 
     async findByJobPost(jobPostId, options = {}) {
-        return await this.findAll({ jobPostId }, options);
+        const { User, Resume } = require('../models');
+        return await this.findAll({ jobPostId }, {
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['userId', 'fullName', 'email', 'phoneNumber', 'avatarUrl']
+                },
+                {
+                    model: Resume,
+                    as: 'resume',
+                    attributes: ['resumesId', 'fileName', 'fileUrl']
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            ...options
+        });
     }
 
     async findByUser(userId, options = {}) {
-        return await this.findAll({ userId }, options);
+        const { JobPost, Company, Location, Resume } = require('../models');
+
+        return await this.findAll({ userId }, {
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: ['jobPostId', 'title', 'salaryMin', 'salaryMax', 'status', 'expiredAt', 'companyId', 'locationId'],
+                    include: [
+                        {
+                            model: Company,
+                            as: 'company',
+                            attributes: ['companyId', 'name', 'logoUrl']
+                        },
+                        {
+                            model: Location,
+                            as: 'location',
+                            attributes: ['locationId', 'name']
+                        }
+                    ]
+                },
+                {
+                    model: Resume,
+                    as: 'resume',
+                    attributes: ['resumesId', 'fileName', 'fileUrl']
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            ...options
+        });
     }
 
     async findByStatus(status, options = {}) {
@@ -28,6 +73,33 @@ class ApplicationRepository extends BaseRepository {
 
     async checkExistingApplication(userId, jobPostId) {
         return await this.findOne({ userId, jobPostId });
+    }
+
+    async findDetailById(applicationId) {
+        const { JobPost, Company, Location, Resume } = require('../models');
+        return await this.findById(applicationId, {
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: ['jobPostId', 'title', 'salaryMin', 'salaryMax', 'status', 'expiredAt', 'companyId', 'locationId', 'description', 'requirements'],
+                    include: [
+                        { model: Company, as: 'company', attributes: ['companyId', 'name', 'logoUrl', 'scale', 'websiteUrl', 'addressDetail'] },
+                        { model: Location, as: 'location', attributes: ['locationId', 'name'] }
+                    ]
+                },
+                {
+                    model: Resume,
+                    as: 'resume',
+                    attributes: ['resumesId', 'fileName', 'fileUrl']
+                },
+                {
+                    model: require('../models').User,
+                    as: 'user',
+                    attributes: ['userId', 'fullName', 'email', 'phoneNumber', 'avatarUrl']
+                }
+            ]
+        });
     }
 }
 
