@@ -4,7 +4,8 @@ const { Op } = require('sequelize');
 
 jest.mock('../../src/repositories', () => ({
     UserRepository: {
-        count: jest.fn()
+        count: jest.fn(),
+        countWithRole: jest.fn()
     },
     JobPostRepository: {
         count: jest.fn()
@@ -24,7 +25,7 @@ describe('StatisticsService', () => {
 
     describe('getDashboardStats', () => {
         it('should return dashboard statistics', async () => {
-            UserRepository.count.mockResolvedValueOnce(50); // Candidates
+            UserRepository.countWithRole.mockResolvedValueOnce(50); // Candidates
             CompanyRepository.count.mockResolvedValueOnce(10); // Employers
             JobPostRepository.count.mockResolvedValueOnce(20); // Jobs
             ApplicationRepository.count.mockResolvedValueOnce(100); // Applications
@@ -33,7 +34,8 @@ describe('StatisticsService', () => {
 
             const result = await StatisticsService.getDashboardStats();
 
-            expect(UserRepository.count).toHaveBeenCalledTimes(2);
+            expect(UserRepository.countWithRole).toHaveBeenCalledTimes(1);
+            expect(UserRepository.count).toHaveBeenCalledTimes(1);
             expect(CompanyRepository.count).toHaveBeenCalledTimes(1);
             expect(JobPostRepository.count).toHaveBeenCalledTimes(2);
             expect(ApplicationRepository.count).toHaveBeenCalledTimes(1);
