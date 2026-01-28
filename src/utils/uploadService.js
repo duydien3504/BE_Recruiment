@@ -8,17 +8,25 @@ class UploadService {
      * @param {string} folder - Cloudinary folder name
      * @returns {Promise<string>} - Cloudinary URL
      */
-    async uploadToCloudinary(fileBuffer, folder = 'avatars') {
+    async uploadToCloudinary(fileBuffer, folder = 'avatars', options = {}) {
         return new Promise((resolve, reject) => {
+            const uploadOptions = {
+                folder: folder,
+                resource_type: options.resource_type || 'auto',
+                ...options
+            };
+
+            // If it's an avatar and no specific transformations provided, keep defaults
+            if (folder === 'avatars' && !options.transformation) {
+                uploadOptions.transformation = [
+                    { width: 500, height: 500, crop: 'limit' },
+                    { quality: 'auto' }
+                ];
+                uploadOptions.resource_type = 'image';
+            }
+
             const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: folder,
-                    resource_type: 'image',
-                    transformation: [
-                        { width: 500, height: 500, crop: 'limit' },
-                        { quality: 'auto' }
-                    ]
-                },
+                uploadOptions,
                 (error, result) => {
                     if (error) {
                         reject(error);
