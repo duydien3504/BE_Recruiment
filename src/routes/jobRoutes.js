@@ -124,6 +124,40 @@ router.post('/', authenticateToken, JobController.createJob);
 
 /**
  * @swagger
+ * /api/v1/jobs/suggested:
+ *   get:
+ *     summary: Gợi ý việc làm AI (Candidate)
+ *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       jobId:
+ *                         type: integer
+ *                       match_score:
+ *                         type: integer
+ *                       reason:
+ *                         type: string
+ *       400:
+ *         description: Chưa có CV
+ */
+router.get('/suggested', authenticateToken, JobController.getSuggestedJobs);
+
+/**
+ * @swagger
  * /api/v1/jobs/{id}:
  *   get:
  *     summary: Xem chi tiết việc làm

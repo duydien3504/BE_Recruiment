@@ -1,8 +1,125 @@
-const { JobPostRepository } = require('../repositories');
+const { JobPostRepository, ResumeRepository, UserRepository } = require('../repositories');
+const AIService = require('./AIService');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const axios = require('axios');
+const pdf = require('pdf-parse');
+const cloudinary = require('../config/cloudinary');
 
 class JobService {
+    // ... (rest of methods)
+
+    /**
+     * Gợi ý việc làm AI (Candidate)
+     * @param {string} userId
+     */
+    async getSuggestedJobs(userId) {
+        // 1. Get User Data first
+        const user = await UserRepository.findWithSkills(userId);
+        if (!user) {
+            const error = new Error(MESSAGES.USER_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        const candidateSkills = user.skills ? user.skills.map(s => s.name) : [];
+        const candidateTitle = user.title || '';
+
+        // 2. Get Main Resume
+        const resume = await ResumeRepository.findMainResume(userId);
+
+        let resumeText = '';
+        if (resume && resume.fileUrl) {
+            try {
+                let downloadUrl = resume.fileUrl;
+
+                // If it's a Cloudinary URL, use a signed URL to avoid 401/403 for raw assets
+                if (downloadUrl.includes('cloudinary.com')) {
+                    console.log(`[JobService] Cloudinary URL detected. Generating signed download link...`);
+                    // Pattern to match Cloudinary URL and extract parts
+                    // https://res.cloudinary.com/<cloud_name>/<resource_type>/upload/v<version>/<public_id_with_extension>
+                    const match = downloadUrl.match(/res\.cloudinary\.com\/[^/]+\/([^/]+)\/upload\/(?:v\d+\/)?(.+)$/);
+                    if (match) {
+                        const resourceType = match[1]; // e.g., 'raw' or 'image'
+                        const publicIdWithExt = match[2]; // e.g., 'resumes/abc.pdf'
+
+                        // Extract extension
+                        const lastDotIndex = publicIdWithExt.lastIndexOf('.');
+                        const publicId = lastDotIndex !== -1 ? publicIdWithExt.substring(0, lastDotIndex) : publicIdWithExt;
+                        const extension = lastDotIndex !== -1 ? publicIdWithExt.substring(lastDotIndex + 1) : '';
+
+                        downloadUrl = cloudinary.utils.private_download_url(publicIdWithExt, extension, {
+                            resource_type: resourceType,
+                            type: 'upload'
+                        });
+                        console.log(`[JobService] Signed URL generated: ${downloadUrl.substring(0, 100)}...`);
+                    }
+                }
+
+                console.log(`[JobService] Attempting to read CV from: ${downloadUrl.substring(0, 80)}...`);
+                const response = await axios({
+                    method: 'get',
+                    url: downloadUrl,
+                    responseType: 'arraybuffer',
+                    timeout: 10000,
+                    headers: {
+                        'Accept': 'application/pdf',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
+                });
+
+                const buffer = Buffer.from(response.data);
+
+                // 3. Parse PDF to Text
+                const data = await pdf(buffer);
+                resumeText = data.text;
+
+                if (resumeText.length > 5000) {
+                    resumeText = resumeText.substring(0, 5000);
+                }
+                console.log(`[JobService] CV read successfully (${resumeText.length} chars).`);
+            } catch (pdfError) {
+                console.error(`[JobService] CV Read Error: ${pdfError.message}`);
+
+                if (pdfError.response && (pdfError.response.status === 401 || pdfError.response.status === 403)) {
+                    console.error('[JobService] Access Denied. Cloudinary signed URL might have failed or account has strict private settings.');
+                }
+
+                // Non-critical error: Proceed to fallback if skills exist
+                console.log('[JobService] Falling back to profile skills due to read error.');
+            }
+        }
+
+        // Final check: Need either resumeText or profile skills
+        if (!resumeText && candidateSkills.length === 0) {
+            const msg = resume
+                ? 'Không thể đọc nội dung file CV của bạn và bạn cũng chưa cập nhật kỹ năng trong hồ sơ. Vui lòng tải lên lại (Upload mới) CV hoặc cập nhật bộ kỹ năng trong hồ sơ cá nhân.'
+                : 'Bạn cần tải lên CV hoặc cập nhật kỹ năng trong hồ sơ cá nhân để sử dụng tính năng gợi ý việc làm.';
+            const error = new Error(msg);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        // 3. Get Active Jobs
+        const { rows: jobs } = await JobPostRepository.search({}, { limit: 50 });
+
+        if (jobs.length === 0) {
+            return { data: [] };
+        }
+
+        // 4. Call AI Service
+        try {
+            if (resumeText) {
+                return await AIService.getSuggestionsWithResume(resumeText, jobs);
+            } else {
+                return await AIService.getSuggestions({ title: candidateTitle, skills: candidateSkills }, jobs);
+            }
+        } catch (error) {
+            console.error('[JobService] AI Error:', error.message);
+            return { data: [] };
+        }
+    }
+
     /**
      * Tìm kiếm việc làm (Public)
      * @param {Object} query - query params
@@ -396,6 +513,7 @@ class JobService {
 
         return await JobPostRepository.getAllJobs(filters, options);
     }
+
 }
 
 module.exports = new JobService();

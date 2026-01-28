@@ -236,6 +236,26 @@ class JobController {
             next(error);
         }
     }
+
+    /**
+     * Gợi ý việc làm AI (Candidate)
+     * @route GET /api/v1/jobs/suggested
+     */
+    async getSuggestedJobs(req, res, next) {
+        try {
+            // Check authentication (middleware should guarantee user exists if used correctly)
+            const userId = req.user.userId;
+
+            const result = await JobService.getSuggestedJobs(userId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                message: 'Gợi ý việc làm thành công',
+                data: result.data
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new JobController();
