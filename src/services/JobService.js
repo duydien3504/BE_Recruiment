@@ -57,6 +57,7 @@ class JobService {
                 }
 
                 console.log(`[JobService] Attempting to read CV from: ${downloadUrl.substring(0, 80)}...`);
+
                 const response = await axios({
                     method: 'get',
                     url: downloadUrl,

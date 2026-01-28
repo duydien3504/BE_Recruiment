@@ -25,20 +25,19 @@ class AIService {
             ${resumeText}
             """
 
-            Available Jobs:
+            Available Jobs (STRICT LIST):
             ${JSON.stringify(jobList, null, 2)}
 
             Task:
-            1. Analyze the candidate's resume content (skills, experience, title).
-            2. Match against the available jobs strictly.
-            3. Select the top 5 most suitable jobs.
-            4. Return ONLY a valid JSON object with the following structure:
+            1. Analyze the candidate's resume content.
+            2. Match against the Available Jobs ONLY. Do NOT invent new jobs.
+            3. Select the top 5 most suitable jobs from the provided list.
+            4. Return ONLY a valid JSON object with this structure:
             {
                 "data": [
-                    { "jobId": <job_id>, "match_score": <0-100>, "reason": "<short explanation why it matches>" }
+                    { "jobId": <Must be one of the IDs from Available Jobs>, "match_score": <0-100>, "reason": "<explanation>" }
                 ]
             }
-            Do not include any explanation text outside the JSON.
         `;
 
         const payload = JSON.stringify({
@@ -50,7 +49,18 @@ class AIService {
             response_format: { type: 'json_object' }
         });
 
-        return this._callAI(payload);
+        const result = await this._callAI(payload);
+
+        // Filter hallucinations
+        if (result && result.data && Array.isArray(result.data)) {
+            const validIds = new Set(jobList.map(j => j.id));
+            const originalCount = result.data.length;
+            result.data = result.data.filter(item => validIds.has(item.jobId));
+            if (result.data.length < originalCount) {
+                console.warn(`[AIService] Filtered ${originalCount - result.data.length} invalid/hallucinated job IDs.`);
+            }
+        }
+        return result;
     }
 
     async getSuggestions(candidateProfile, jobs) {
@@ -75,16 +85,17 @@ class AIService {
             - Skills: ${candidateProfile.skills.join(', ')}
             - Title/Role: ${candidateProfile.title || 'N/A'}
 
-            Available Jobs:
+            Available Jobs (STRICT LIST):
             ${JSON.stringify(jobList, null, 2)}
 
             Task:
             Analyze the candidate's profile against the available jobs.
             Select the top 5 most suitable jobs.
+            Match against the Available Jobs ONLY. Do NOT invent new jobs.
             Return ONLY a valid JSON object with the following structure:
             {
                 "data": [
-                    { "jobId": <job_id>, "match_score": <0-100>, "reason": "<short explanation>" }
+                    { "jobId": <Must be one of the IDs from Available Jobs>, "match_score": <0-100>, "reason": "<short explanation>" }
                 ]
             }
         `;
@@ -98,7 +109,18 @@ class AIService {
             response_format: { type: 'json_object' }
         });
 
-        return this._callAI(payload);
+        const result = await this._callAI(payload);
+
+        // Filter hallucinations
+        if (result && result.data && Array.isArray(result.data)) {
+            const validIds = new Set(jobList.map(j => j.id));
+            const originalCount = result.data.length;
+            result.data = result.data.filter(item => validIds.has(item.jobId));
+            if (result.data.length < originalCount) {
+                console.warn(`[AIService] Filtered ${originalCount - result.data.length} invalid/hallucinated job IDs.`);
+            }
+        }
+        return result;
     }
 
     async _callAI(payload) {
