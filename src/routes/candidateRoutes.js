@@ -134,4 +134,35 @@ router.get('/applications', authenticateToken, ApplicationController.getCandidat
  */
 router.get('/applications/:id', authenticateToken, ApplicationController.getApplicationDetail);
 
+const InterviewController = require('../controllers/InterviewController');
+
+/**
+ * @swagger
+ * /api/v1/candidate/interviews:
+ *   get:
+ *     summary: Danh sách lịch phỏng vấn (Candidate)
+ *     tags: [Candidate Applications]
+ *     description: Candidate xem danh sách các lịch mời phỏng vấn sắp tới.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách lịch phỏng vấn thành công."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: Chưa đăng nhập
+ */
+router.get('/interviews', authenticateToken, InterviewController.getCandidateInterviews);
+
 module.exports = router;

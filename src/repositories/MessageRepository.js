@@ -6,25 +6,13 @@ class MessageRepository extends BaseRepository {
         super(Message);
     }
 
-    async findByConversation(conversationsId, options = {}) {
+    async findByConversation(conversationId, options = {}) {
         return await this.findAll(
-            { conversationsId, isDeleted: false },
-            { ...options, order: [['createdAt', 'ASC']] }
-        );
-    }
-
-    async findUnreadByConversation(conversationsId) {
-        return await this.findAll({ conversationsId, isRead: false, isDeleted: false });
-    }
-
-    async markAsRead(messageId) {
-        return await this.update(messageId, { isRead: true });
-    }
-
-    async markConversationMessagesAsRead(conversationsId, senderId) {
-        return await this.model.update(
-            { isRead: true },
-            { where: { conversationsId, senderId, isRead: false } }
+            { conversationsId: conversationId },
+            {
+                order: [['created_at', 'ASC']], // Oldest first for chat history
+                ...options
+            }
         );
     }
 }

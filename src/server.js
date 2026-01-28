@@ -22,10 +22,13 @@ const startServer = async () => {
 
         console.log('Database đã sẵn sàng.');
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             console.log(`Server đang chạy tại cổng http://localhost:${PORT}`);
             console.log(`Swagger UI tại http://localhost:${PORT}/api-docs`);
         });
+
+        const { initSocket } = require('./services/SocketService');
+        initSocket(server);
     } catch (error) {
         console.error('Lỗi khi khởi động server:', error.message);
         process.exit(1);

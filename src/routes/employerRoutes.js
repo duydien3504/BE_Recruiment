@@ -237,4 +237,33 @@ router.get('/applications/:id', authenticateToken, ApplicationController.getEmpl
  */
 router.patch('/applications/:id/status', authenticateToken, ApplicationController.updateApplicationStatus);
 
+const InterviewController = require('../controllers/InterviewController');
+
+/**
+ * @swagger
+ * /api/v1/employer/interviews:
+ *   get:
+ *     summary: Danh sách lịch phỏng vấn (Employer)
+ *     tags: [Employer]
+ *     description: Xem tất cả lịch pv sắp tới của nhà tuyển dụng.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách lịch phỏng vấn thành công."
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
+router.get('/interviews', authenticateToken, InterviewController.getEmployerInterviews);
+
 module.exports = router;

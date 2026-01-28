@@ -50,7 +50,38 @@ class ApplicationService {
             status: 'Pending'
         };
 
-        return await ApplicationRepository.create(applicationData);
+        const newApplication = await ApplicationRepository.create(applicationData);
+
+        // 5. Notification: Send to Employer
+        try {
+            const { User } = require('../models');
+            // Get Employer User ID from Job -> Company -> User
+            // Job is already fetched in step 1. job.companyId
+            // Need to fetch company to get userId
+            const { CompanyRepository } = require('../repositories');
+            const company = await CompanyRepository.findById(job.companyId);
+
+            if (company && company.userId) {
+                const { saveAndSendNotification } = require('./SocketService');
+                const applicant = await require('../repositories/UserRepository').findById(userId);
+                const applicantName = applicant ? applicant.fullName : 'Ứng viên';
+
+                const notificationData = {
+                    title: 'Có ứng viên mới!',
+                    message: `Có ứng viên mới ${applicantName} vừa ứng tuyển vào tin ${job.title}.`,
+                    type: 'APPLICATION',
+                    jobId: job.jobPostId,
+                    applicationId: newApplication.applicationId
+                };
+
+                await saveAndSendNotification(company.userId, 'new_notification', notificationData);
+            }
+        } catch (err) {
+            console.error('Socket Notification Error (Create Application):', err.message);
+            // Non-blocking error
+        }
+
+        return newApplication;
     }
 
     /**
@@ -139,6 +170,10 @@ class ApplicationService {
         // 3. Update status to Viewed if Pending
         if (application.status === 'Pending') {
             await ApplicationRepository.updateStatus(applicationId, 'Viewed');
+
+            // Notification: Status changed to Viewed (Optional per requirement? User asked for update status endpoint, but detail view also updates status)
+            // Implicit change might not need notification or maybe "Đã xem". 
+            // The requirement specifically mentions PATCH status endpoint. Let's keep notification there primarily.
             application.status = 'Viewed';
         }
 
@@ -179,7 +214,43 @@ class ApplicationService {
         }
 
         // 3. Update status
-        return await ApplicationRepository.updateStatus(applicationId, status, note);
+        const result = await ApplicationRepository.updateStatus(applicationId, status, note);
+
+        // 4. Notification: Send to Candidate
+        try {
+            const { saveAndSendNotification } = require('./SocketService');
+            // Assuming status mappings:
+            // "Viewed": "Đã xem"
+            // "Interview": "Phỏng vấn"
+            // "Accepted": "Trúng tuyển"
+            // "Rejected": "Từ chối"
+
+            const statusMap = {
+                'Viewed': 'Đã xem',
+                'Interview': 'Phỏng vấn',
+                'Accepted': 'Trúng tuyển',
+                'Rejected': 'Từ chối',
+                'Pending': 'Chờ duyệt'
+            };
+
+            const statusVN = statusMap[status] || status;
+            const jobTitle = application.jobPost ? application.jobPost.title : 'Công việc';
+
+            const notificationData = {
+                title: 'Cập nhật hồ sơ ứng tuyển',
+                message: `Hồ sơ ứng tuyển ${jobTitle} của bạn đã được chuyển sang trạng thái ${statusVN}.`,
+                type: 'APPLICATION_STATUS',
+                jobId: application.jobPostId,
+                status: status
+            };
+
+            await saveAndSendNotification(application.userId, 'new_notification', notificationData);
+
+        } catch (err) {
+            console.error('Socket Notification Error (Update Status):', err.message);
+        }
+
+        return result;
     }
 }
 
