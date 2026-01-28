@@ -273,6 +273,64 @@ class UserService {
             message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS
         };
     }
+
+    // --- Admin Methods ---
+
+    async getAllUsers(query) {
+        const { role, status, page = 1, limit = 10 } = query;
+        const keyword = query.keyword ? query.keyword.trim() : null;
+
+        const options = {
+            attributes: ['userId', 'email', 'fullName', 'phoneNumber', 'status', 'avatarUrl', ['created_at', 'createdAt']],
+            offset: (page - 1) * limit,
+            limit: parseInt(limit),
+            order: [['created_at', 'DESC']]
+        };
+
+        const result = await UserRepository.findAllUsers({ keyword, role, status }, options);
+        return result;
+    }
+
+    async getUserDetailForAdmin(id) {
+        const user = await UserRepository.findById(id);
+        if (!user) {
+            const error = new Error(MESSAGES.USER_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+        // Return full detail possibly excluding sensitive like password
+        return {
+            userId: user.userId,
+            email: user.email,
+            fullName: user.fullName,
+            phone: user.phoneNumber, // map back
+            address: user.address,
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender,
+            avatarUrl: user.avatarUrl,
+            role: user.role,
+            status: user.status,
+            isVerified: user.isVerified,
+            createdAt: user.createdAt
+        };
+    }
+
+    async updateUserStatus(id, status) {
+        const user = await UserRepository.findById(id);
+        if (!user) {
+            const error = new Error(MESSAGES.USER_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (!['Active', 'Banned'].includes(status)) {
+            const error = new Error('Trạng thái không hợp lệ.');
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        return await UserRepository.updateStatus(id, status);
+    }
 }
 
 module.exports = new UserService();

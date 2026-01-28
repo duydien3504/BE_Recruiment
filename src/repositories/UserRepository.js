@@ -58,6 +58,46 @@ class UserRepository extends BaseRepository {
         await user.removeSkill(skillId);
         return true;
     }
+
+    async findAllUsers(filters, options = {}) {
+        const { Role } = require('../models');
+        const where = { isDeleted: false };
+
+        const roleInclude = {
+            model: Role,
+            as: 'role',
+            attributes: ['roleName']
+        };
+
+        if (filters.keyword) {
+            where[Op.or] = [
+                { fullName: { [Op.like]: `%${filters.keyword}%` } },
+                { email: { [Op.like]: `%${filters.keyword}%` } }
+            ];
+        }
+
+        if (filters.role) {
+            // Database roles are stored in uppercase (ADMIN, CANDIDATE, EMPLOYER)
+            roleInclude.where = { roleName: filters.role.toUpperCase() };
+        }
+
+        if (filters.status) {
+            where.status = filters.status;
+        }
+
+        return await this.findAll(where, { ...options, include: [roleInclude] });
+    }
+    async countWithRole(roleName, conditions = {}) {
+        const { Role } = require('../models');
+        return await this.model.count({
+            where: conditions,
+            include: [{
+                model: Role,
+                as: 'role',
+                where: { roleName: roleName.toUpperCase() }
+            }]
+        });
+    }
 }
 
 module.exports = new UserRepository();

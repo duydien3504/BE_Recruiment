@@ -152,6 +152,56 @@ class UserController {
             next(error);
         }
     }
+
+    /**
+     * Lấy danh sách users (Admin)
+     * @route GET /api/v1/admin/users
+     */
+    async getAllUsers(req, res, next) {
+        try {
+            const users = await UserService.getAllUsers(req.query);
+            return res.status(HTTP_STATUS.OK).json({
+                message: MESSAGES.GET_USERS_SUCCESS,
+                data: users
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Lấy chi tiết user (Admin)
+     * @route GET /api/v1/admin/users/:id
+     */
+    async getUserDetail(req, res, next) {
+        try {
+            const { id } = req.params;
+            const user = await UserService.getUserDetailForAdmin(id);
+            return res.status(HTTP_STATUS.OK).json({
+                message: MESSAGES.GET_PROFILE_SUCCESS, // Reusing existing message or create new
+                data: user
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Update user status (Admin)
+     * @route PATCH /api/v1/admin/users/:id/status
+     */
+    async updateUserStatus(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+            await UserService.updateUserStatus(id, status);
+            return res.status(HTTP_STATUS.OK).json({
+                message: MESSAGES.UPDATE_USER_STATUS_SUCCESS
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new UserController();

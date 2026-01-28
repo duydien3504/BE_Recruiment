@@ -13,6 +13,10 @@ class CategoryRepository extends BaseRepository {
     async findAllActive(options = {}) {
         return await this.findAll({ isDeleted: false }, options);
     }
+
+    async findByIdActive(id) {
+        return await this.findOne({ categoryId: id, isDeleted: false });
+    }
 }
 
 module.exports = new CategoryRepository();
