@@ -3,11 +3,49 @@ const { ApplicationRepository, JobPostRepository, ResumeRepository } = require('
 const HTTP_STATUS = require('../../src/constant/statusCode');
 const MESSAGES = require('../../src/constant/messages');
 
+// Mock all repositories
 jest.mock('../../src/repositories');
 
+// Mock CompanyRepository (used in notification logic)
+jest.mock('../../src/repositories/CompanyRepository', () => ({
+    findById: jest.fn()
+}));
+
+// Mock UserRepository (used in notification logic)
+jest.mock('../../src/repositories/UserRepository', () => ({
+    findById: jest.fn()
+}));
+
+// Mock SocketService (used in notification logic)
+jest.mock('../../src/services/SocketService', () => ({
+    saveAndSendNotification: jest.fn()
+}));
+
 describe('ApplicationService.createApplication', () => {
+    let CompanyRepository;
+    let UserRepository;
+    let SocketService;
+
+    beforeAll(() => {
+        // Get mocked modules
+        CompanyRepository = require('../../src/repositories/CompanyRepository');
+        UserRepository = require('../../src/repositories/UserRepository');
+        SocketService = require('../../src/services/SocketService');
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
+
+        // Setup default mocks for notification dependencies
+        CompanyRepository.findById.mockResolvedValue({
+            companyId: 1,
+            userId: 'employer-123'
+        });
+        UserRepository.findById.mockResolvedValue({
+            userId: 'user-123',
+            fullName: 'Test User'
+        });
+        SocketService.saveAndSendNotification.mockResolvedValue(true);
     });
 
     const userId = 'user-123';
@@ -18,10 +56,19 @@ describe('ApplicationService.createApplication', () => {
     };
 
     it('should create application successfully', async () => {
-        JobPostRepository.findById.mockResolvedValue({ jobPostId: 1 });
+        JobPostRepository.findById.mockResolvedValue({
+            jobPostId: 1,
+            companyId: 1,
+            title: 'Software Engineer'
+        });
         ResumeRepository.findById.mockResolvedValue({ resumesId: 10, userId: userId });
         ApplicationRepository.checkExistingApplication.mockResolvedValue(null);
-        ApplicationRepository.create.mockResolvedValue({ ...data, userId, status: 'Pending' });
+        ApplicationRepository.create.mockResolvedValue({
+            applicationId: 1,
+            ...data,
+            userId,
+            status: 'Pending'
+        });
 
         const result = await ApplicationService.createApplication(userId, data);
 
