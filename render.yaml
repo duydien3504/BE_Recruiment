@@ -1,0 +1,102 @@
+services:
+  # Backend API Service
+  - type: web
+    name: be-recruitment-api
+    runtime: node
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    
+    envVars:
+      # Server Config
+      - key: NODE_ENV
+        value: production
+      
+      - key: PORT
+        value: 8080
+      
+      # Database - TiDB Cloud
+      - key: DB_HOST
+        sync: false
+      
+      - key: DB_PORT
+        value: 4000
+      
+      - key: DB_USER
+        sync: false
+      
+      - key: DB_PASSWORD
+        sync: false
+      
+      - key: DB_NAME
+        sync: false
+      
+      # SSL/TLS
+      - key: CA_PATH
+        value: src/config/secret/cert/isrgrootx1.pem
+      
+      # JWT Secrets
+      - key: JWT_SECRET
+        sync: false
+      
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      
+      - key: ACCESS_TOKEN_EXPIRATION
+        value: 1d
+      
+      - key: REFRESH_TOKEN_EXPIRATION
+        value: 7d
+      
+      # Email SMTP
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      
+      - key: EMAIL_PORT
+        value: 587
+      
+      - key: EMAIL_USER
+        sync: false
+      
+      - key: EMAIL_PASSWORD
+        sync: false
+      
+      - key: EMAIL_FROM
+        sync: false
+      
+      # Cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      
+      # VNPAY
+      - key: vnp_TmnCode
+        sync: false
+      
+      - key: vnp_HashSecret
+        sync: false
+      
+      - key: vnp_Url
+        value: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+      
+      - key: vnp_Return_Url
+        sync: false
+      
+      # OpenRouter AI
+      - key: API_KEY
+        sync: false
+      
+      - key: API_URL
+        value: https://openrouter.ai/api/v1/chat/completions
+      
+      - key: MODEL
+        value: nvidia/nemotron-3-nano-30b-a3b:free
