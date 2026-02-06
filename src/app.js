@@ -73,6 +73,34 @@ app.get('/', (req, res) => {
     });
 });
 
+// Health Check Endpoint for Monitoring and CD
+app.get('/health', async (req, res) => {
+    try {
+        const { sequelize } = require('./config/database');
+
+        // Check database connection
+        await sequelize.authenticate();
+
+        res.status(200).json({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            environment: process.env.NODE_ENV || 'development',
+            database: 'connected',
+            version: require('../package.json').version || '1.0.0'
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'ERROR',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            environment: process.env.NODE_ENV || 'development',
+            database: 'disconnected',
+            error: error.message
+        });
+    }
+});
+
 // Centralized Error Handling Middleware
 app.use((err, req, res, next) => {
     const statusCode = err.status || 500;
