@@ -12,8 +12,10 @@ const options = {
         },
         servers: [
             {
-                url: `http://localhost:${process.env.PORT || 8080}`,
-                description: 'Development server',
+                url: process.env.NODE_ENV === 'production'
+                    ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'be-recruitment.onrender.com'}`
+                    : `http://localhost:${process.env.PORT || 8080}`,
+                description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
             },
         ],
         components: {
