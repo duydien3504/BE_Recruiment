@@ -3,17 +3,34 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Đọc CA Certificate nếu có cấu hình
-let sslOptions = {};
-if (process.env.CA_PATH) {
+// SSL Configuration for TiDB Cloud
+let dialectOptions = {};
+
+// TiDB Cloud requires SSL connection
+// Check if we're connecting to TiDB Cloud (tidbcloud.com in hostname)
+const isTiDBCloud = process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com');
+
+if (isTiDBCloud) {
+    // For TiDB Cloud: Use SSL with system CA (works on Render and most platforms)
+    dialectOptions = {
+        ssl: {
+            minVersion: 'TLSv1.2',
+            rejectUnauthorized: true
+        }
+    };
+    console.log('[INFO] Kết nối TiDB Cloud với SSL enabled');
+} else if (process.env.CA_PATH) {
+    // For custom SSL certificate (local development with custom CA)
     try {
         const caPath = path.resolve(process.cwd(), process.env.CA_PATH);
         if (fs.existsSync(caPath)) {
-            sslOptions = {
+            dialectOptions = {
                 ssl: {
-                    ca: fs.readFileSync(caPath)
+                    ca: fs.readFileSync(caPath),
+                    rejectUnauthorized: true
                 }
             };
+            console.log('[INFO] Sử dụng custom SSL certificate');
         } else {
             console.warn(`[CẢNH BÁO] Không tìm thấy file chứng chỉ tại: ${caPath}`);
         }
@@ -30,9 +47,7 @@ const sequelize = new Sequelize(
         host: process.env.DB_HOST,
         port: process.env.DB_PORT || 4000,
         dialect: 'mysql',
-        dialectOptions: {
-            ...sslOptions
-        },
+        dialectOptions,
         logging: false, // Tắt log query mặc định của Sequelize cho gọn
         pool: {
             max: 5,
