@@ -37,4 +37,44 @@ const { authenticateToken, authorize } = require('../middleware/authMiddleware')
  */
 router.get('/history', authenticateToken, authorize(['Employer', 'Company']), PaymentController.getHistory);
 
+/**
+ * @swagger
+ * /api/v1/payments/create-payment:
+ *   post:
+ *     summary: Tạo link thanh toán VNPay
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - jobPostId
+ *             properties:
+ *               jobPostId:
+ *                 type: integer
+ */
+router.post('/create-payment', authenticateToken, authorize(['Employer', 'Company']), PaymentController.createPayment);
+
+/**
+ * @swagger
+ * /api/v1/payments/callback:
+ *   get:
+ *     summary: Xử lý callback từ VNPay (Return URL)
+ *     tags: [Payments]
+ */
+router.get('/callback', PaymentController.handleCallback);
+
+/**
+ * @swagger
+ * /api/v1/payments/ipn:
+ *   get:
+ *     summary: Xử lý IPN từ VNPay (Instant Payment Notification)
+ *     tags: [Payments]
+ */
+router.get('/ipn', PaymentController.handleIPN);
+
 module.exports = router;

@@ -28,7 +28,10 @@ describe('UserController', () => {
             email: 'test@example.com',
             fullName: 'Test User',
             phone: '0123456789',
-            role: 'seeker'
+            bio: 'Software Developer with 5 years of experience',
+            role: 'CANDIDATE',
+            status: 'Active',
+            createdAt: '2024-01-01T00:00:00.000Z'
         };
 
         test('should return 200 and user profile on success', async () => {
@@ -63,6 +66,62 @@ describe('UserController', () => {
             await UserController.getProfile(req, res, next);
 
             expect(UserService.getProfile).toHaveBeenCalledTimes(1);
+        });
+
+        test('should return profile with role field', async () => {
+            UserService.getProfile.mockResolvedValue(mockProfile);
+
+            await UserController.getProfile(req, res, next);
+
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        role: 'CANDIDATE'
+                    })
+                })
+            );
+        });
+
+        test('should return profile with createdAt field', async () => {
+            UserService.getProfile.mockResolvedValue(mockProfile);
+
+            await UserController.getProfile(req, res, next);
+
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                    })
+                })
+            );
+        });
+
+        test('should return profile with status field', async () => {
+            UserService.getProfile.mockResolvedValue(mockProfile);
+
+            await UserController.getProfile(req, res, next);
+
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        status: 'Active'
+                    })
+                })
+            );
+        });
+
+        test('should return profile with bio field', async () => {
+            UserService.getProfile.mockResolvedValue(mockProfile);
+
+            await UserController.getProfile(req, res, next);
+
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        bio: 'Software Developer with 5 years of experience'
+                    })
+                })
+            );
         });
     });
 

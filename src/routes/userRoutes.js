@@ -53,18 +53,23 @@ const { uploadImage, handleUploadError } = require('../middleware/uploadMiddlewa
  *                     avatar:
  *                       type: string
  *                       example: "https://example.com/avatar.jpg"
+ *                     bio:
+ *                       type: string
+ *                       example: "Software Developer with 5 years of experience"
+ *                       description: "User biography/description"
  *                     role:
  *                       type: string
- *                       example: "seeker"
- *                     isVerified:
- *                       type: boolean
- *                       example: true
- *                     isActive:
- *                       type: boolean
- *                       example: true
+ *                       example: "CANDIDATE"
+ *                       description: "Role name (ADMIN, EMPLOYER, CANDIDATE)"
+ *                     status:
+ *                       type: string
+ *                       enum: [Active, Inactive, Banned]
+ *                       example: "Active"
+ *                       description: "Account status"
  *                     createdAt:
  *                       type: string
  *                       format: date-time
+ *                       example: "2024-01-01T00:00:00.000Z"
  *       401:
  *         description: Chưa đăng nhập hoặc token không hợp lệ
  *       404:

@@ -12,7 +12,7 @@ class UserService {
      * @returns {Object} User profile (không bao gồm password)
      */
     async getProfile(userId) {
-        const user = await UserRepository.findById(userId);
+        const user = await UserRepository.findByIdWithRole(userId);
 
         if (!user) {
             const error = new Error(MESSAGES.USER_NOT_FOUND);
@@ -30,10 +30,10 @@ class UserService {
             dateOfBirth: user.dateOfBirth,
             gender: user.gender,
             avatar: user.avatarUrl,
-            role: user.role,
-            isVerified: user.isVerified,
-            isActive: user.isActive,
-            createdAt: user.createdAt
+            bio: user.bio,
+            role: user.role ? user.role.roleName : null,
+            status: user.status,
+            createdAt: user.created_at || user.createdAt
         };
     }
 

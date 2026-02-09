@@ -17,6 +17,7 @@ const NotificationRepository = require('./NotificationRepository');
 const ConversationRepository = require('./ConversationRepository');
 const MessageRepository = require('./MessageRepository');
 const TransactionRepository = require('./TransactionRepository');
+const LevelRepository = require('./LevelRepository');
 
 module.exports = {
     RoleRepository,
@@ -37,5 +38,6 @@ module.exports = {
     NotificationRepository,
     ConversationRepository,
     MessageRepository,
-    TransactionRepository
+    TransactionRepository,
+    LevelRepository
 };

@@ -65,6 +65,9 @@ app.use('/api/v1/locations', locationRoutes);
 const skillRoutes = require('./routes/skillRoutes');
 app.use('/api/v1/skills', skillRoutes);
 
+const levelRoutes = require('./routes/levelRoutes');
+app.use('/api/v1/levels', levelRoutes);
+
 // Base Route
 app.get('/', (req, res) => {
     res.json({

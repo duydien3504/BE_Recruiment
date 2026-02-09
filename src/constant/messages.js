@@ -138,6 +138,16 @@ const MESSAGES = {
     FILE_TYPE_INVALID: 'Chỉ chấp nhận file ảnh định dạng JPG, JPEG, PNG.',
     FILE_SIZE_EXCEEDED: 'Kích thước file không được vượt quá 5MB.',
 
+    // Level messages
+    GET_LEVELS_SUCCESS: 'Lấy danh sách cấp độ thành công.',
+    GET_LEVEL_SUCCESS: 'Lấy thông tin cấp độ thành công.',
+    CREATE_LEVEL_SUCCESS: 'Tạo cấp độ thành công.',
+    UPDATE_LEVEL_SUCCESS: 'Cập nhật cấp độ thành công.',
+    DELETE_LEVEL_SUCCESS: 'Đã xóa cấp độ.',
+    LEVEL_NOT_FOUND: 'Không tìm thấy cấp độ.',
+    LEVEL_NAME_EXISTS: 'Tên cấp độ đã tồn tại.',
+    LEVEL_NAME_REQUIRED: 'Tên cấp độ là bắt buộc.',
+
     // Server errors
     INTERNAL_SERVER_ERROR: 'Lỗi server nội bộ.'
 };

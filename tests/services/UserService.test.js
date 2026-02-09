@@ -11,6 +11,7 @@ jest.mock('../../src/utils/uploadService');
 jest.mock('../../src/repositories', () => ({
     UserRepository: {
         findById: jest.fn(),
+        findByIdWithRole: jest.fn(),
         update: jest.fn(),
         findWithSkills: jest.fn(),
         addSkills: jest.fn(),
@@ -41,19 +42,22 @@ describe('UserService', () => {
             dateOfBirth: '1990-01-01',
             gender: 'male',
             avatarUrl: 'https://example.com/avatar.jpg',
-            role: 'seeker',
-            isVerified: true,
-            isActive: true,
+            bio: 'Software Developer with 5 years of experience',
+            role: {
+                roleName: 'CANDIDATE'
+            },
+            status: 'Active',
+            created_at: '2024-01-01T00:00:00.000Z',
             createdAt: '2024-01-01T00:00:00.000Z',
             password: 'hashed-password-should-not-be-returned'
         };
 
         test('should return user profile without password', async () => {
-            UserRepository.findById.mockResolvedValue(mockUser);
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
 
             const result = await UserService.getProfile('uuid-123');
 
-            expect(UserRepository.findById).toHaveBeenCalledWith('uuid-123');
+            expect(UserRepository.findByIdWithRole).toHaveBeenCalledWith('uuid-123');
             expect(result).toEqual({
                 userId: 'uuid-123',
                 email: 'test@example.com',
@@ -63,16 +67,16 @@ describe('UserService', () => {
                 dateOfBirth: '1990-01-01',
                 gender: 'male',
                 avatar: 'https://example.com/avatar.jpg',
-                role: 'seeker',
-                isVerified: true,
-                isActive: true,
+                bio: 'Software Developer with 5 years of experience',
+                role: 'CANDIDATE',
+                status: 'Active',
                 createdAt: '2024-01-01T00:00:00.000Z'
             });
             expect(result.password).toBeUndefined();
         });
 
         test('should throw error when user not found', async () => {
-            UserRepository.findById.mockResolvedValue(null);
+            UserRepository.findByIdWithRole.mockResolvedValue(null);
 
             try {
                 await UserService.getProfile('non-existent-id');
@@ -81,15 +85,101 @@ describe('UserService', () => {
                 expect(error.status).toBe(HTTP_STATUS.NOT_FOUND);
             }
 
-            expect(UserRepository.findById).toHaveBeenCalledWith('non-existent-id');
+            expect(UserRepository.findByIdWithRole).toHaveBeenCalledWith('non-existent-id');
         });
 
         test('should use O(1) complexity with primary key lookup', async () => {
-            UserRepository.findById.mockResolvedValue(mockUser);
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
 
             await UserService.getProfile('uuid-123');
 
-            expect(UserRepository.findById).toHaveBeenCalledTimes(1);
+            expect(UserRepository.findByIdWithRole).toHaveBeenCalledTimes(1);
+        });
+
+        test('should return createdAt field with account creation date', async () => {
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.createdAt).toBeDefined();
+            expect(result.createdAt).toBe('2024-01-01T00:00:00.000Z');
+            expect(typeof result.createdAt).toBe('string');
+        });
+
+        test('should return role field with role name', async () => {
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.role).toBeDefined();
+            expect(result.role).toBe('CANDIDATE');
+            expect(typeof result.role).toBe('string');
+        });
+
+
+        test('should handle null role gracefully', async () => {
+            const userWithoutRole = { ...mockUser, role: null };
+            UserRepository.findByIdWithRole.mockResolvedValue(userWithoutRole);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.role).toBeNull();
+        });
+
+        test('should return status field with account status', async () => {
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.status).toBeDefined();
+            expect(result.status).toBe('Active');
+            expect(typeof result.status).toBe('string');
+        });
+
+        test('should return correct status for Inactive account', async () => {
+            const inactiveUser = { ...mockUser, status: 'Inactive' };
+            UserRepository.findByIdWithRole.mockResolvedValue(inactiveUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.status).toBe('Inactive');
+        });
+
+        test('should return correct status for Banned account', async () => {
+            const bannedUser = { ...mockUser, status: 'Banned' };
+            UserRepository.findByIdWithRole.mockResolvedValue(bannedUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.status).toBe('Banned');
+        });
+
+        test('should return bio field with user biography', async () => {
+            UserRepository.findByIdWithRole.mockResolvedValue(mockUser);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.bio).toBeDefined();
+            expect(result.bio).toBe('Software Developer with 5 years of experience');
+            expect(typeof result.bio).toBe('string');
+        });
+
+        test('should handle null bio gracefully', async () => {
+            const userWithoutBio = { ...mockUser, bio: null };
+            UserRepository.findByIdWithRole.mockResolvedValue(userWithoutBio);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.bio).toBeNull();
+        });
+
+        test('should handle empty bio string', async () => {
+            const userWithEmptyBio = { ...mockUser, bio: '' };
+            UserRepository.findByIdWithRole.mockResolvedValue(userWithEmptyBio);
+
+            const result = await UserService.getProfile('uuid-123');
+
+            expect(result.bio).toBe('');
         });
     });
 

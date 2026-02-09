@@ -11,6 +11,17 @@ class UserRepository extends BaseRepository {
         return await this.findOne({ email });
     }
 
+    async findByIdWithRole(userId) {
+        const { Role } = require('../models');
+        return await this.findById(userId, {
+            include: [{
+                model: Role,
+                as: 'role',
+                attributes: ['roleName']
+            }]
+        });
+    }
+
     async findByRole(roleId, options = {}) {
         return await this.findAll({ roleId, isDeleted: false }, options);
     }

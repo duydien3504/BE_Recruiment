@@ -143,51 +143,57 @@ class AuthService {
             throw error;
         }
 
-        const otpRecord = await OtpRepository.findValidOtp(user.userId, otp, 'ResetPassword');
+        // 1. Check VerifyEmail (Register)
+        const verifyOtpRecord = await OtpRepository.findValidOtp(user.userId, otp, 'VerifyEmail');
+        if (verifyOtpRecord) {
+            await OtpRepository.markAsUsed(verifyOtpRecord.otpId);
+            await UserRepository.updateStatus(user.userId, 'Active');
 
-        if (!otpRecord) {
-            const usedOtp = await OtpRepository.findOne({
+            return {
+                email: user.email,
+                isVerified: true
+            };
+        }
+
+        // 2. Check ResetPassword (Forgot Password)
+        const resetOtpRecord = await OtpRepository.findValidOtp(user.userId, otp, 'ResetPassword');
+        if (resetOtpRecord) {
+            await OtpRepository.markAsUsed(resetOtpRecord.otpId);
+
+            const resetToken = jwtHelper.generateAccessToken({
                 userId: user.userId,
-                code: otp,
-                type: 'ResetPassword',
-                isUsed: true
+                email: user.email,
+                purpose: 'reset-password'
             });
 
-            if (usedOtp) {
-                const error = new Error(MESSAGES.OTP_ALREADY_USED);
-                error.status = HTTP_STATUS.BAD_REQUEST;
-                throw error;
-            }
+            return {
+                resetToken,
+                email: user.email
+            };
+        }
 
-            const expiredOtp = await OtpRepository.findOne({
-                userId: user.userId,
-                code: otp,
-                type: 'ResetPassword'
-            });
+        // 3. Error Handling
+        const usedVerifyOtp = await OtpRepository.findOne({ userId: user.userId, code: otp, type: 'VerifyEmail', isUsed: true });
+        const usedResetOtp = await OtpRepository.findOne({ userId: user.userId, code: otp, type: 'ResetPassword', isUsed: true });
 
-            if (expiredOtp) {
-                const error = new Error(MESSAGES.OTP_EXPIRED);
-                error.status = HTTP_STATUS.BAD_REQUEST;
-                throw error;
-            }
-
-            const error = new Error(MESSAGES.OTP_INVALID);
+        if (usedVerifyOtp || usedResetOtp) {
+            const error = new Error(MESSAGES.OTP_ALREADY_USED);
             error.status = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
 
-        await OtpRepository.markAsUsed(otpRecord.otpId);
+        const expiredVerifyOtp = await OtpRepository.findOne({ userId: user.userId, code: otp, type: 'VerifyEmail' });
+        const expiredResetOtp = await OtpRepository.findOne({ userId: user.userId, code: otp, type: 'ResetPassword' });
 
-        const resetToken = jwtHelper.generateAccessToken({
-            userId: user.userId,
-            email: user.email,
-            purpose: 'reset-password'
-        });
+        if (expiredVerifyOtp || expiredResetOtp) {
+            const error = new Error(MESSAGES.OTP_EXPIRED);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
 
-        return {
-            resetToken,
-            email: user.email
-        };
+        const error = new Error(MESSAGES.OTP_INVALID);
+        error.status = HTTP_STATUS.BAD_REQUEST;
+        throw error;
     }
 
     async resetPassword(resetPasswordData) {
