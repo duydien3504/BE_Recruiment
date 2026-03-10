@@ -13,24 +13,29 @@ class UploadService {
             const uploadOptions = {
                 folder: folder,
                 resource_type: options.resource_type || 'auto',
+                type: 'upload',        // Chế độ 'upload' là public nhất
+                access_mode: 'public',
+                // Đảm bảo không có flags: 'attachment' ở đây
                 ...options
             };
 
-            // If it's an avatar and no specific transformations provided, keep defaults
+            // Avatar logic remains
             if (folder === 'avatars' && !options.transformation) {
+                uploadOptions.resource_type = 'image';
                 uploadOptions.transformation = [
                     { width: 500, height: 500, crop: 'limit' },
                     { quality: 'auto' }
                 ];
-                uploadOptions.resource_type = 'image';
             }
 
             const uploadStream = cloudinary.uploader.upload_stream(
                 uploadOptions,
                 (error, result) => {
                     if (error) {
+                        console.error('Cloudinary Upload Error:', error);
                         reject(error);
                     } else {
+                        console.log(`Cloudinary Upload Success: ${result.secure_url} (Access: ${result.access_mode})`);
                         resolve(result.secure_url);
                     }
                 }

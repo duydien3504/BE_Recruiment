@@ -17,6 +17,22 @@ class AdminController {
             next(error);
         }
     }
+
+    /**
+     * Get growth stats (7 days)
+     * @route GET /api/v1/admin/stats/growth
+     */
+    async getGrowthStats(req, res, next) {
+        try {
+            const stats = await StatisticsService.getGrowthStats();
+            return res.status(HTTP_STATUS.OK).json({
+                message: 'Lấy thống kê tăng trưởng thành công.',
+                data: stats
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new AdminController();

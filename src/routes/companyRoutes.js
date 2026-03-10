@@ -225,21 +225,62 @@ router.post('/background', authenticateToken, uploadImage.single('file'), handle
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: "Lấy danh sách công ty thành công."
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
+ *                     properties:
+ *                       companyId:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "148a5ff6-6a57-4b88-8661-986c4cd66982"
+ *                       userId:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                       name:
+ *                         type: string
+ *                         example: "HugoTech Corp"
+ *                       logoUrl:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "https://res.cloudinary.com/djn694zux/image/upload/v1770567553/company-logos/mvcngekmp9jtdm6iv6m5.png"
+ *                       scale:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "800+"
+ *                       description:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "Công ty chuyên gia công phần mềm chất lượng cao"
+ *                       addressDetail:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "20-22 Đường Lê Duẩn, Phường Sài Gòn, Thành Phố Hồ Chí Minh"
+ *                       status:
+ *                         type: string
+ *                         enum: [Active, Inactive, Pending]
+ *                         example: "Active"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2026-01-25T13:14:21.000Z"
  *                 pagination:
  *                   type: object
  *                   properties:
  *                     total:
  *                       type: integer
+ *                       example: 2
  *                     page:
  *                       type: integer
+ *                       example: 1
  *                     limit:
  *                       type: integer
+ *                       example: 10
  *                     totalPages:
  *                       type: integer
+ *                       example: 1
  */
 router.get('/', CompanyController.getCompanies);
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ChatController = require('../controllers/ChatController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { authenticateToken, authorize } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -38,6 +38,6 @@ const { authenticateToken } = require('../middleware/authMiddleware');
  *       404:
  *         description: Không tìm thấy cuộc trò chuyện
  */
-router.post('/', authenticateToken, ChatController.sendMessage);
+router.post('/', authenticateToken, authorize(['Admin', 'Employer', 'Candidate']), ChatController.sendMessage);
 
 module.exports = router;

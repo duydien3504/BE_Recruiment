@@ -8,7 +8,7 @@ class CompanyRepository extends BaseRepository {
     }
 
     async findByUserId(userId) {
-        return await this.findOne({ userId, isDeleted: false });
+        return await this.findOne({ userId });
     }
 
     async findByTaxCode(taxCode) {
@@ -17,7 +17,7 @@ class CompanyRepository extends BaseRepository {
 
     async searchByName(keyword, options = {}) {
         return await this.findAll({
-            name: { [Op.like]: `%${keyword}%` },
+            name: { [Op.iLike]: `%${keyword}%` },
             isDeleted: false
         }, options);
     }
@@ -51,14 +51,24 @@ class CompanyRepository extends BaseRepository {
         };
 
         if (keyword) {
-            where.name = { [Op.like]: `%${keyword}%` };
+            where.name = { [Op.iLike]: `%${keyword}%` };
         }
 
         return await this.findAndCountAll(where, {
             limit,
             offset,
             order: [['created_at', 'DESC']],
-            attributes: ['companyId', 'name', 'logoUrl', 'scale', 'description', 'addressDetail']
+            attributes: [
+                'companyId',
+                'userId',
+                'name',
+                'logoUrl',
+                'scale',
+                'description',
+                'addressDetail',
+                'status',
+                ['created_at', 'createdAt']
+            ]
         });
     }
 }

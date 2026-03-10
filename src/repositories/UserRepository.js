@@ -32,7 +32,7 @@ class UserRepository extends BaseRepository {
 
     async searchByName(keyword, options = {}) {
         return await this.findAll({
-            fullName: { [Op.like]: `%${keyword}%` },
+            fullName: { [Op.iLike]: `%${keyword}%` },
             isDeleted: false
         }, options);
     }
@@ -82,8 +82,8 @@ class UserRepository extends BaseRepository {
 
         if (filters.keyword) {
             where[Op.or] = [
-                { fullName: { [Op.like]: `%${filters.keyword}%` } },
-                { email: { [Op.like]: `%${filters.keyword}%` } }
+                { fullName: { [Op.iLike]: `%${filters.keyword}%` } },
+                { email: { [Op.iLike]: `%${filters.keyword}%` } }
             ];
         }
 

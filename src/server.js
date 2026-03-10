@@ -20,6 +20,10 @@ const startServer = async () => {
         // Chỉ bật lại (alter: true) khi bạn sửa Model và muốn DB tự động cập nhật theo.
         await sequelize.sync({ alter: false });
 
+        // Tự động seed dữ liệu mẫu nếu Database đang rỗng
+        const seedData = require('../DataTest/seedData');
+        await seedData();
+
         console.log('Database đã sẵn sàng.');
 
         const server = app.listen(PORT, () => {

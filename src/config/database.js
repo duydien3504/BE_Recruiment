@@ -3,12 +3,13 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// SSL Configuration for TiDB Cloud
+// SSL Configuration for TiDB Cloud and Neon
 let dialectOptions = {};
 
 // TiDB Cloud requires SSL connection
-// Check if we're connecting to TiDB Cloud (tidbcloud.com in hostname)
+// Check if we're connecting to TiDB Cloud or Neon
 const isTiDBCloud = process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com');
+const isNeon = process.env.DB_HOST && process.env.DB_HOST.includes('neon.tech');
 
 if (isTiDBCloud) {
     // For TiDB Cloud: Use SSL with system CA (works on Render and most platforms)
@@ -19,6 +20,14 @@ if (isTiDBCloud) {
         }
     };
     console.log('[INFO] Kết nối TiDB Cloud với SSL enabled');
+} else if (isNeon) {
+    dialectOptions = {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false
+        }
+    };
+    console.log('[INFO] Kết nối Neon PostgreSQL với SSL enabled');
 } else if (process.env.CA_PATH) {
     // For custom SSL certificate (local development with custom CA)
     try {
@@ -45,8 +54,8 @@ const sequelize = new Sequelize(
     process.env.DB_PASSWORD,
     {
         host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 4000,
-        dialect: 'mysql',
+        port: process.env.DB_PORT || 5432,
+        dialect: 'postgres',
         dialectOptions,
         logging: false, // Tắt log query mặc định của Sequelize cho gọn
         pool: {

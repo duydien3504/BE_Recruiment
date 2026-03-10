@@ -51,6 +51,26 @@ class ConversationRepository extends BaseRepository {
         });
     }
 
+    // Get all conversations (for Admin)
+    async findAll(options = {}) {
+        return await this.model.findAll({
+            include: [
+                {
+                    model: Company,
+                    as: 'company',
+                    attributes: ['companyId', 'name', 'logoUrl']
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['userId', 'fullName', 'avatarUrl']
+                }
+            ],
+            order: [['lastMessageAt', 'DESC']],
+            ...options
+        });
+    }
+
     // Find Detail with associations
     async findDetailById(conversationId) {
         return await this.model.findByPk(conversationId, {

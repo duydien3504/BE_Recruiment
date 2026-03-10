@@ -555,5 +555,19 @@ const AdminController = require('../controllers/AdminController');
  */
 router.get('/stats/dashboard', authenticateToken, authorize(['Admin']), AdminController.getDashboardStats);
 
+/**
+ * @swagger
+ * /api/v1/admin/stats/growth:
+ *   get:
+ *     summary: Thống kê tăng trưởng (Admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ */
+router.get('/stats/growth', authenticateToken, authorize(['Admin']), AdminController.getGrowthStats);
+
 module.exports = router;
 

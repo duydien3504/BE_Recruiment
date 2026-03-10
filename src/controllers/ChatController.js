@@ -11,9 +11,13 @@ class ChatController {
         try {
             const senderId = req.user.userId;
             const senderRole = req.user.role;
-            const { receiverId } = req.body; // Can be CompanyId or CandidateUserId
+            const { receiverUserId } = req.body;
 
-            const conversation = await ChatService.startConversation(senderId, senderRole, receiverId);
+            const conversation = await ChatService.startConversation(
+                senderId,
+                senderRole,
+                receiverUserId
+            );
 
             return res.status(HTTP_STATUS.OK).json({
                 message: MESSAGES.CREATE_CONVERSATION_SUCCESS,

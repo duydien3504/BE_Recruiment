@@ -47,6 +47,35 @@ class StatisticsService {
             new_jobs: newJobs
         };
     }
+
+    async getGrowthStats() {
+        const stats = [];
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const startOfDay = new Date(date.getTime());
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date.getTime());
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const usersCount = await UserRepository.count({
+                created_at: { [Op.between]: [startOfDay, endOfDay] },
+                isDeleted: false
+            });
+
+            const jobsCount = await JobPostRepository.count({
+                created_at: { [Op.between]: [startOfDay, endOfDay] },
+                isDeleted: false
+            });
+
+            stats.push({
+                name: date.toLocaleDateString('en-US', { weekday: 'short' }),
+                users: usersCount,
+                jobs: jobsCount
+            });
+        }
+        return stats;
+    }
 }
 
 module.exports = new StatisticsService();

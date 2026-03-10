@@ -6,44 +6,50 @@ const { saveAndSendNotification } = require('./SocketService');
 class ChatService {
     /**
      * Start or Get Conversation
-     * @param {string} senderId
-     * @param {string} senderRole
-     * @param {string} receiverId - Target UUID (CompanyId if Candidate, UserId if Employer)
+     * @param {string} senderId - ID của người gửi (từ token)
+     * @param {string} senderRole - Role của người gửi
+     * @param {string} receiverUserId - ID của user muốn nhắn tin
      */
-    async startConversation(senderId, senderRole, receiverId) {
-        let userId, companyId;
-        const role = senderRole.toUpperCase();
-
-        if (role === 'CANDIDATE') {
-            userId = senderId;
-            companyId = receiverId;
-            // Validate Company exists
-            const company = await CompanyRepository.findById(companyId);
-            if (!company) {
-                const error = new Error('Không tìm thấy công ty.');
-                error.status = HTTP_STATUS.NOT_FOUND;
-                throw error;
-            }
-        } else if (role === 'EMPLOYER' || role === 'COMPANY') { // Adjust role name as per system
-            // Find my company
-            const myCompany = await CompanyRepository.findByUserId(senderId);
-            if (!myCompany) {
-                const error = new Error('Bạn không có công ty nào.');
-                error.status = HTTP_STATUS.BAD_REQUEST;
-                throw error;
-            }
-            companyId = myCompany.companyId;
-            userId = receiverId; // Target Candidate
-
-            // Validate Candidate exists (Simple check via UserRepo or let FK Constraint handle)
-            // Ideally check require('../repositories/UserRepository').findById(userId);
-        } else {
-            const error = new Error(MESSAGES.FORBIDDEN);
-            error.status = HTTP_STATUS.FORBIDDEN;
+    async startConversation(senderId, senderRole, receiverUserId) {
+        // Validate receiverUserId
+        if (!receiverUserId) {
+            const error = new Error('Vui lòng cung cấp receiverUserId.');
+            error.status = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
 
-        // Check existing
+        // Không được nhắn tin với chính mình
+        if (senderId === receiverUserId) {
+            const error = new Error('Không thể tạo cuộc trò chuyện với chính mình.');
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        let userId, companyId;
+
+        // Kiểm tra xem người nhận có phải là Employer (có company) không
+        const receiverCompany = await CompanyRepository.findByUserId(receiverUserId);
+
+        // Kiểm tra xem người gửi có phải là Employer (có company) không
+        const senderCompany = await CompanyRepository.findByUserId(senderId);
+
+        // Logic xác định userId và companyId cho conversation
+        if (receiverCompany) {
+            // Người nhận là Employer -> conversation giữa sender (user side) và receiver's company
+            userId = senderId;
+            companyId = receiverCompany.companyId;
+        } else if (senderCompany) {
+            // Người gửi là Employer -> conversation giữa receiver (user side) và sender's company
+            userId = receiverUserId;
+            companyId = senderCompany.companyId;
+        } else {
+            // Cả hai đều không có company -> không thể tạo conversation
+            const error = new Error('Không thể tạo cuộc trò chuyện. Ít nhất một người phải là Employer.');
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        // Check existing conversation
         let conversation = await ConversationRepository.findByParticipants(userId, companyId);
         if (!conversation) {
             conversation = await ConversationRepository.create({
@@ -57,12 +63,31 @@ class ChatService {
     }
 
     async getConversations(userId, role) {
-        if (role.toUpperCase() === 'CANDIDATE') {
-            return await ConversationRepository.findByUser(userId);
-        } else {
+        const roleUpper = role ? role.toUpperCase() : '';
+        console.log(`[ChatService] getConversations for User: ${userId}, Role: ${roleUpper}`);
+
+        if (roleUpper === 'CANDIDATE' || roleUpper === 'ADMIN') {
+            // Candidate và Admin chỉ xem cuộc trò chuyện của chính mình (user side)
+            const convs = await ConversationRepository.findByUser(userId);
+            console.log(`[ChatService] Found ${convs.length} conversations for User/Admin`);
+            return convs;
+        } else if (roleUpper === 'EMPLOYER' || roleUpper === 'RECRUITER') {
+            // Employer/Recruiter xem cuộc trò chuyện của company
+            console.log(`[ChatService] Finding company for user ${userId}...`);
             const myCompany = await CompanyRepository.findByUserId(userId);
-            if (!myCompany) return [];
-            return await ConversationRepository.findByCompany(myCompany.companyId);
+
+            if (!myCompany) {
+                console.warn(`[ChatService] Company not found for Employer ${userId}`);
+                return [];
+            }
+
+            console.log(`[ChatService] Found Company: ${myCompany.companyId}. Fetching conversations...`);
+            const convs = await ConversationRepository.findByCompany(myCompany.companyId);
+            console.log(`[ChatService] Found ${convs.length} conversations for Company ${myCompany.companyId}`);
+            return convs;
+        } else {
+            console.warn(`[ChatService] Unknown role: ${role}`);
+            return [];
         }
     }
 
@@ -76,11 +101,19 @@ class ChatService {
         }
 
         let isParticipant = false;
-        if (role.toUpperCase() === 'CANDIDATE') {
-            if (conversation.userId === userId) isParticipant = true;
-        } else {
+        const roleUpper = role.toUpperCase();
+
+        if (roleUpper === 'CANDIDATE' || roleUpper === 'ADMIN') {
+            // Candidate và Admin: kiểm tra xem có phải user side của conversation không
+            if (String(conversation.userId) === String(userId)) {
+                isParticipant = true;
+            }
+        } else if (roleUpper === 'EMPLOYER' || roleUpper === 'RECRUITER') {
+            // Employer/Recruiter: kiểm tra xem có phải company side của conversation không
             const myCompany = await CompanyRepository.findByUserId(userId);
-            if (myCompany && myCompany.companyId === conversation.companyId) isParticipant = true;
+            if (myCompany && String(myCompany.companyId) === String(conversation.companyId)) {
+                isParticipant = true;
+            }
         }
 
         if (!isParticipant) {
@@ -112,21 +145,35 @@ class ChatService {
         let receiverUserId = null;
 
         // Check permission & Determine Receiver
-        if (role.toUpperCase() === 'CANDIDATE') {
-            const check = String(conversation.userId) !== String(senderId);
-            // console.log(`DEBUG: conversationId=${conversationId} senderId=${senderId} conv.userId=${conversation.userId} check=${check}`);
-            if (check) throw new Error(`${MESSAGES.FORBIDDEN} ConvUser:${conversation.userId} Sender:${senderId}`);
+        const senderRole = role.toUpperCase();
+
+        if (senderRole === 'ADMIN' || senderRole === 'CANDIDATE') {
+            // Check if user is the participant (user side)
+            if (String(conversation.userId) !== String(senderId)) {
+                const error = new Error(MESSAGES.FORBIDDEN);
+                error.status = HTTP_STATUS.FORBIDDEN;
+                throw error;
+            }
 
             // Receiver is Employer (Company Owner)
+            // Note: Admin/Candidate acts as User side, chatting with a Company.
             const company = await CompanyRepository.findById(conversation.companyId);
             if (company) receiverUserId = company.userId;
 
-        } else {
+        } else if (senderRole === 'EMPLOYER') {
             const myCompany = await CompanyRepository.findByUserId(senderId);
-            if (!myCompany || myCompany.companyId !== conversation.companyId) throw new Error(MESSAGES.FORBIDDEN);
+            if (!myCompany || String(myCompany.companyId) !== String(conversation.companyId)) {
+                const error = new Error(MESSAGES.FORBIDDEN);
+                error.status = HTTP_STATUS.FORBIDDEN;
+                throw error;
+            }
 
-            // Receiver is Candidate
+            // Receiver is Candidate (or whoever is on the user side)
             receiverUserId = conversation.userId;
+        } else {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
         }
 
         // Create Message
@@ -145,7 +192,9 @@ class ChatService {
             const { sendNotificationToUser } = require('./SocketService');
 
             // Emit 'new_message' event specifically for chat
-            const socketData = {
+            // Emit 'new_message' event specifically for chat
+            const socketData = message.toJSON ? message.toJSON() : {
+                messageId: message.messageId,
                 conversationId,
                 senderId,
                 content,

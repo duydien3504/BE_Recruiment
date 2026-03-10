@@ -171,11 +171,23 @@ describe('CompanyController', () => {
     });
 
     describe('getCompanies', () => {
-        test('should return 200 and list of companies', async () => {
+        test('should return 200 and list of companies with userId', async () => {
             req.query = { page: 1, limit: 10 };
             const mockResult = {
-                data: [],
-                pagination: { total: 0 }
+                data: [
+                    {
+                        companyId: 'company-uuid-1',
+                        userId: 'user-uuid-1',
+                        name: 'Tech Corp',
+                        logoUrl: 'https://example.com/logo.png',
+                        scale: '100-500',
+                        description: 'A tech company',
+                        addressDetail: '123 Street',
+                        status: 'Active',
+                        createdAt: '2026-01-01T00:00:00.000Z'
+                    }
+                ],
+                pagination: { total: 1, page: 1, limit: 10, totalPages: 1 }
             };
 
             CompanyService.getCompanies.mockResolvedValue(mockResult);
@@ -188,6 +200,8 @@ describe('CompanyController', () => {
                 message: MESSAGES.GET_COMPANIES_SUCCESS,
                 ...mockResult
             });
+            // Verify userId is included in response
+            expect(mockResult.data[0]).toHaveProperty('userId');
         });
 
         test('should call next with error when service fails', async () => {

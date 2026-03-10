@@ -33,8 +33,7 @@ class ResumeService {
 
         // 4. Upload to Cloudinary
         const fileUrl = await uploadService.uploadToCloudinary(file.buffer, 'resumes', {
-            resource_type: 'raw', // For PDF/Docs
-            format: 'pdf' // Enforce PDF if needed, or derived from file
+            resource_type: 'raw' // Theo yêu cầu: Sử dụng raw cho PDF
         });
 
         // 5. Save to DB
@@ -134,7 +133,6 @@ class ResumeService {
         // Upload new file
         const fileUrl = await uploadService.uploadToCloudinary(file.buffer, 'resumes', {
             resource_type: 'raw',
-            format: 'pdf',
             public_id: `resume_${resumeId}_${Date.now()}` // Optional: unique name
         });
 

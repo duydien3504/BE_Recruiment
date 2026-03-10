@@ -29,7 +29,7 @@ class JobPostRepository extends BaseRepository {
         };
 
         if (filters.keyword) {
-            where.title = { [Op.like]: `%${filters.keyword}%` };
+            where.title = { [Op.iLike]: `%${filters.keyword}%` };
         }
         if (filters.categoryId) {
             where.categoryId = filters.categoryId;
@@ -97,7 +97,7 @@ class JobPostRepository extends BaseRepository {
 
         if (filters.status) where.status = filters.status;
         if (filters.companyId) where.companyId = filters.companyId;
-        if (filters.keyword) where.title = { [Op.like]: `%${filters.keyword}%` };
+        if (filters.keyword) where.title = { [Op.iLike]: `%${filters.keyword}%` };
 
         return await this.findAndCountAll(where, {
             ...options,

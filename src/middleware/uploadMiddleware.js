@@ -38,21 +38,26 @@ const uploadPdf = multer({
 
 // Middleware xử lý lỗi upload
 const handleUploadError = (err, req, res, next) => {
+    // 1. Bẫy các lỗi do thư viện Multer tạo ra (ví dụ: vượt quá kích thước)
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
                 error: {
                     code: 400,
-                    message: MESSAGES.FILE_SIZE_EXCEEDED
+                    message: MESSAGES.FILE_SIZE_EXCEEDED // Giả định bạn đã import biến này
                 }
             });
         }
     }
 
+    // 2. Bẫy các lỗi khác đi qua route (như lỗi Token từ authMiddleware, lỗi file filter, v.v.)
     if (err) {
-        return res.status(400).json({
+        // Lấy status chuẩn từ biến lỗi (vd: 401), nếu không có thì lấy mặc định là 400 BadRequest
+        const statusCode = err.status || 400;
+
+        return res.status(statusCode).json({
             error: {
-                code: 400,
+                code: statusCode,
                 message: err.message
             }
         });
@@ -60,6 +65,7 @@ const handleUploadError = (err, req, res, next) => {
 
     next();
 };
+
 
 module.exports = {
     uploadImage,
