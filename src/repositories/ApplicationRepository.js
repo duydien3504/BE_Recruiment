@@ -75,6 +75,94 @@ class ApplicationRepository extends BaseRepository {
         return await this.findOne({ userId, jobPostId });
     }
 
+    /**
+     * Lấy danh sách application của Candidate có pagination + optional status filter.
+     *
+     * Design:
+     *   - Dùng findAndCountAll với WHERE (user_id [, status]) — filter tại DB, không lọc in-memory.
+     *   - Select đúng các column cần thiết (no SELECT *) theo RULE.md.
+     *   - JOIN job_posts → companies để lấy jobTitle + companyName trong 1 query (tránh N+1).
+     *   - ORDER BY applications.created_at DESC: luôn trả mới nhất trước.
+     *   - limit/offset cho phân trang — O(log n) qua index trên (user_id, created_at).
+     *
+     * @param {string}   userId
+     * @param {object}   options
+     * @param {string}   [options.status]   - Filter theo status enum (optional)
+     * @param {number}   options.limit      - Số record mỗi trang
+     * @param {number}   options.offset     - Vị trí bắt đầu
+     * @returns {Promise<{count: number, rows: Application[]}>}
+     */
+    async findAndCountByUserId(userId, { status, limit, offset }) {
+        const { JobPost, Company } = require('../models');
+
+        const whereClause = { userId };
+        if (status) {
+            whereClause.status = status;
+        }
+
+        return await this.findAndCountAll(whereClause, {
+            attributes: [
+                'applicationId',
+                'jobPostId',
+                'coverLetter',
+                'status',
+                // Fix: dùng tuple [db_column, js_alias] để Sequelize sinh đúng SQL
+                // khi explicit attributes + underscored model. 'createdAt' đơn thuần
+                // không được map tự động và gây lỗi "column does not exist".
+                ['created_at', 'createdAt']
+            ],
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: ['jobPostId', 'title'],
+                    include: [
+                        {
+                            model: Company,
+                            as: 'company',
+                            attributes: ['companyId', 'name']
+                        }
+                    ]
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit,
+            offset
+        });
+    }
+
+    /**
+     * Tìm application thuộc về userId đang ở trạng thái Pending.
+     * Dùng compound WHERE trên (application_id, user_id, status) để:
+     *   - Đảm bảo ownership (không xóa nhầm của người khác)
+     *   - Đảm bảo chỉ xóa khi status = 'Pending' ngay tại tầng DB
+     * Complexity: O(1) vì truy vấn theo PK (application_id) được đánh index.
+     *
+     * @param {number} applicationId
+     * @param {string} userId
+     * @returns {Promise<Application|null>}
+     */
+    async findPendingByIdAndUserId(applicationId, userId) {
+        return await this.findOne({
+            applicationId,
+            userId,
+            status: 'Pending'
+        }, {
+            attributes: ['applicationId', 'userId', 'jobPostId', 'status']
+        });
+    }
+
+    /**
+     * Xóa cứng một application khỏi database.
+     * Chỉ nên được gọi sau khi đã verify ownership + status = Pending ở Service.
+     *
+     * @param {number} applicationId
+     * @returns {Promise<boolean>} true nếu xóa thành công
+     */
+    async deleteById(applicationId) {
+        return await this.delete(applicationId);
+    }
+
     async findDetailById(applicationId) {
         const { JobPost, Company, Location, Resume } = require('../models');
         return await this.findById(applicationId, {

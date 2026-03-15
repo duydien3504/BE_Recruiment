@@ -35,6 +35,26 @@ class ApplicationController {
     }
 
     /**
+     * Cancel (delete) an application - Candidate only
+     * @route DELETE /api/v1/applications/:applicationId
+     */
+    async cancelApplication(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const { applicationId } = req.validatedParams;
+
+            await ApplicationService.cancelApplication(applicationId, userId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: MESSAGES.CANCEL_APPLICATION_SUCCESS
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Get candidate application history
      * @route GET /api/v1/candidate/applications
      */
@@ -46,6 +66,27 @@ class ApplicationController {
             return res.status(HTTP_STATUS.OK).json({
                 message: MESSAGES.GET_APPLICATION_HISTORY_SUCCESS,
                 data: applications
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get paginated application list with optional status filter - Candidate only
+     * @route GET /api/v1/candidate/applications/my-applications
+     */
+    async getMyApplications(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const { status, page, limit } = req.validatedQuery;
+
+            const data = await ApplicationService.getMyApplications(userId, { status, page, limit });
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: MESSAGES.GET_MY_APPLICATIONS_SUCCESS,
+                data
             });
         } catch (error) {
             next(error);

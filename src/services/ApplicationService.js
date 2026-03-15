@@ -1,6 +1,8 @@
 const { ApplicationRepository, JobPostRepository, ResumeRepository } = require('../repositories');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const { PAGINATION_DEFAULTS } = require('../constant/applicationConstants');
+
 
 class ApplicationService {
     /**
@@ -90,6 +92,101 @@ class ApplicationService {
      */
     async getCandidateApplications(userId) {
         return await ApplicationRepository.findByUser(userId);
+    }
+
+    /**
+     * Lấy danh sách hồ sơ ứng tuyển của Candidate có phân trang + filter theo status.
+     *
+     * Complexity:
+     *   - Repository dùng findAndCountAll với WHERE + LIMIT/OFFSET: O(log n) via DB index.
+     *   - Map DTO: O(n) single-pass, n = số records trả về (luôn <= limit).
+     *   - Tổng cộng: O(log n) — không có nested loop.
+     *
+     * @param {string} userId
+     * @param {object} queryParams
+     * @param {string}  [queryParams.status]  - Filter status (optional)
+     * @param {number}  queryParams.page       - Trang hiện tại (đã validated, >= 1)
+     * @param {number}  queryParams.limit      - Số record/trang (đã validated, >= 1)
+     * @returns {Promise<{applications: object[], pagination: object}>}
+     */
+    async getMyApplications(userId, { status, page, limit }) {
+        const offset = (page - PAGINATION_DEFAULTS.PAGE) * limit;
+
+        const { count, rows } = await ApplicationRepository.findAndCountByUserId(userId, {
+            status,
+            limit,
+            offset
+        });
+
+        // Map sang flat DTO — O(n), n <= limit
+        const applications = rows.map(app => ({
+            applicationId: app.applicationId,
+            jobPostId:     app.jobPostId,
+            jobTitle:      app.jobPost ? app.jobPost.title : null,
+            companyName:   app.jobPost?.company ? app.jobPost.company.name : null,
+            coverLetter:   app.coverLetter,
+            status:        app.status,
+            appliedAt:     app.createdAt
+        }));
+
+        const totalPages = Math.ceil(count / limit);
+
+        return {
+            applications,
+            pagination: {
+                currentPage:  page,
+                totalPages,
+                totalItems:   count,
+                limit
+            }
+        };
+    }
+
+    /**
+     * Cancel (delete) an application by Candidate.
+     *
+     * Nghiệp vụ:
+     *   1. Tìm application theo (applicationId, userId, status='Pending') — O(1) PK lookup.
+     *   2. Nếu không tìm thấy → kiểm tra xem có tồn tại application không (phân biệt 404 vs 400).
+     *   3. Nếu application tồn tại nhưng status != Pending → 400 (đã bị Employer tác động).
+     *   4. Nếu không tồn tại hoặc không thuộc userId → 404 (ẩn thông tin security).
+     *   5. Xóa bản ghi.
+     *
+     * Complexity: O(1) — tất cả query đều dùng PK index.
+     *
+     * @param {number} applicationId
+     * @param {string} userId  - Lấy từ JWT, đảm bảo chỉ xóa của chính mình
+     */
+    async cancelApplication(applicationId, userId) {
+        // Bước 1: Tìm application thuộc userId và đang Pending (O(1) - PK + FK indexed)
+        const pendingApplication = await ApplicationRepository.findPendingByIdAndUserId(
+            applicationId,
+            userId
+        );
+
+        if (!pendingApplication) {
+            // Bước 2: Phân biệt 404 (không tồn tại / không phải của mình) vs 400 (đã bị tác động)
+            // Tra thêm bằng PK để xác định lý do cụ thể, vẫn là O(1)
+            const existingApplication = await ApplicationRepository.findOne(
+                { applicationId, userId },
+                { attributes: ['applicationId', 'status'] }
+            );
+
+            if (!existingApplication) {
+                // Không tìm thấy hoặc không thuộc về user này → 404
+                const notFoundError = new Error(MESSAGES.APPLICATION_NOT_FOUND);
+                notFoundError.status = HTTP_STATUS.NOT_FOUND;
+                throw notFoundError;
+            }
+
+            // Tìm thấy nhưng status != Pending → Employer đã tác động → 400
+            const cannotCancelError = new Error(MESSAGES.APPLICATION_CANNOT_BE_CANCELLED);
+            cannotCancelError.status = HTTP_STATUS.BAD_REQUEST;
+            throw cannotCancelError;
+        }
+
+        // Bước 3: Xóa bản ghi — O(1) via PK
+        await ApplicationRepository.deleteById(applicationId);
     }
 
     /**
