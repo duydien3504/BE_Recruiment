@@ -2,6 +2,11 @@ const { JobPostRepository, ResumeRepository, UserRepository } = require('../repo
 const AIService = require('./AIService');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const {
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUSES,
+    PAYMENT_METHODS
+} = require('../constant/transactionConstants');
 const axios = require('axios');
 const pdf = require('pdf-parse');
 const cloudinary = require('../config/cloudinary');
@@ -222,8 +227,9 @@ class JobService {
             companyId: company.companyId,
             jobPostId: job.jobPostId,
             amount: amount,
-            paymentMethod: 'VNPay',
-            status: 'Pending'
+            paymentMethod: PAYMENT_METHODS.VNPAY,
+            transactionType: TRANSACTION_TYPES.JOB_POST,
+            status: TRANSACTION_STATUSES.PENDING
         });
 
         // Tạo VNPay payment URL

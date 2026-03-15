@@ -133,6 +133,36 @@ class ApplicationController {
         }
     }
 
+    async getEmployerApplications(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const data = await ApplicationService.getEmployerApplications(userId, req.validatedQuery);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: MESSAGES.GET_JOB_APPLICATIONS_SUCCESS,
+                data
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async downloadEmployerApplicationCv(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const { applicationId } = req.validatedParams;
+            const data = await ApplicationService.downloadCvForEmployer(userId, applicationId);
+            const encodedFileName = encodeURIComponent(data.fileName);
+
+            res.setHeader('Content-Type', data.contentType);
+            res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodedFileName}`);
+            return res.status(HTTP_STATUS.OK).send(data.fileBuffer);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /**
      * Get application detail (Employer)
      * @route GET /api/v1/employer/applications/:id

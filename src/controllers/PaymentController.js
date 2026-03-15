@@ -1,6 +1,7 @@
 const TransactionService = require('../services/TransactionService');
 const PaymentService = require('../services/PaymentService');
 const HTTP_STATUS = require('../constant/statusCode');
+const { TRANSACTION_TYPES } = require('../constant/transactionConstants');
 
 class PaymentController {
     /**
@@ -30,9 +31,11 @@ class PaymentController {
             const result = await PaymentService.handleCallback(req.query);
 
             if (result.success) {
-                // Redirect user to success page or return JSON
-                // For now, redirect to frontend success page
                 const transformUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+                if (result.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION) {
+                    res.redirect(`${transformUrl}/payment/account-activated`);
+                    return;
+                }
                 res.redirect(`${transformUrl}/payment/success?jobId=${result.jobPostId}`);
             } else {
                 const transformUrl = process.env.CLIENT_URL || 'http://localhost:3000';

@@ -1,5 +1,11 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
+const {
+    TRANSACTION_TYPE_VALUES,
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUS_VALUES,
+    TRANSACTION_STATUSES
+} = require('../constant/transactionConstants');
 
 const Transaction = sequelize.define('Transaction', {
     transactionId: {
@@ -15,8 +21,14 @@ const Transaction = sequelize.define('Transaction', {
     },
     jobPostId: {
         type: DataTypes.BIGINT,
-        allowNull: false,
+        allowNull: true,
         field: 'job_post_id'
+    },
+    transactionType: {
+        type: DataTypes.ENUM(...TRANSACTION_TYPE_VALUES),
+        allowNull: false,
+        defaultValue: TRANSACTION_TYPES.JOB_POST,
+        field: 'transaction_type'
     },
     amount: {
         type: DataTypes.DECIMAL(15, 2),
@@ -28,8 +40,8 @@ const Transaction = sequelize.define('Transaction', {
         field: 'payment_method'
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Success', 'Failed', 'Cancelled'),
-        defaultValue: 'Pending'
+        type: DataTypes.ENUM(...TRANSACTION_STATUS_VALUES),
+        defaultValue: TRANSACTION_STATUSES.PENDING
     }
 }, {
     tableName: 'transactions',

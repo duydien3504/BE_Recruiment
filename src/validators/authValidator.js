@@ -40,9 +40,59 @@ const registerSchema = Joi.object({
         })
 });
 
-const validate = (schema) => {
+const employerRegisterSchema = Joi.object({
+    email: Joi.string()
+        .email()
+        .required()
+        .messages({
+            'string.email': MESSAGES.EMAIL_INVALID,
+            'any.required': MESSAGES.EMAIL_REQUIRED,
+            'string.empty': MESSAGES.EMAIL_REQUIRED
+        }),
+    password: Joi.string()
+        .min(8)
+        .pattern(/^(?=.*[A-Z])(?=.*\d)/)
+        .required()
+        .messages({
+            'string.min': MESSAGES.PASSWORD_MIN_LENGTH,
+            'string.pattern.base': MESSAGES.PASSWORD_PATTERN,
+            'any.required': MESSAGES.PASSWORD_REQUIRED,
+            'string.empty': MESSAGES.PASSWORD_REQUIRED
+        }),
+    fullName: Joi.string()
+        .trim()
+        .required()
+        .messages({
+            'any.required': MESSAGES.FULL_NAME_REQUIRED,
+            'string.empty': MESSAGES.FULL_NAME_REQUIRED
+        }),
+    companyName: Joi.string()
+        .trim()
+        .required()
+        .messages({
+            'any.required': MESSAGES.COMPANY_NAME_REQUIRED,
+            'string.empty': MESSAGES.COMPANY_NAME_REQUIRED
+        }),
+    taxCode: Joi.string()
+        .trim()
+        .required()
+        .messages({
+            'any.required': MESSAGES.TAX_CODE_REQUIRED,
+            'string.empty': MESSAGES.TAX_CODE_REQUIRED
+        }),
+    phoneNumber: Joi.string()
+        .trim()
+        .pattern(/^(0|\+84)[3-9]\d{8}$/)
+        .optional()
+        .messages({
+            'string.pattern.base': MESSAGES.PHONE_INVALID
+        })
+});
+
+const validate = (schema, source = 'body') => {
     return (req, res, next) => {
-        const { error, value } = schema.validate(req.body, { abortEarly: false });
+        const payload = source === 'query' ? req.query : req.body;
+        const { error, value } = schema.validate(payload, { abortEarly: false });
 
         if (error) {
             const errors = error.details.map(detail => detail.message);
@@ -54,7 +104,11 @@ const validate = (schema) => {
             });
         }
 
-        req.body = value;
+        if (source === 'query') {
+            req.query = value;
+        } else {
+            req.body = value;
+        }
         next();
     };
 };
@@ -116,10 +170,18 @@ const refreshTokenSchema = Joi.object({
         })
 });
 
+const employerPaymentCallbackSchema = Joi.object({
+    vnp_ResponseCode: Joi.string().required(),
+    vnp_TxnRef: Joi.string().required(),
+    vnp_SecureHash: Joi.string().required()
+}).unknown(true);
+
 module.exports = {
     validateRegister: validate(registerSchema),
+    validateEmployerRegister: validate(employerRegisterSchema),
     validateLogin: validate(loginSchema),
     validateForgotPassword: validate(forgotPasswordSchema),
     validateVerifyOtp: validate(verifyOtpSchema),
-    validateRefreshToken: validate(refreshTokenSchema)
+    validateRefreshToken: validate(refreshTokenSchema),
+    validateEmployerPaymentCallback: validate(employerPaymentCallbackSchema, 'query')
 };

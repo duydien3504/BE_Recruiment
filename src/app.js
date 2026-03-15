@@ -38,6 +38,7 @@ app.use('/api/v1/companies', companyRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/employer', employerRoutes);
+app.use('/api/v1/employers', employerRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/resumes', resumeRoutes);
 app.use('/api/v1/saved-jobs', savedJobRoutes);

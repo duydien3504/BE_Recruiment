@@ -10,6 +10,12 @@ const syncDatabase = async () => {
         // force: true sẽ DROP và tạo lại bảng (XÓA DATA - chỉ dùng dev)
         await sequelize.sync({ alter: true });
 
+        await sequelize.query('ALTER TABLE transactions ALTER COLUMN job_post_id DROP NOT NULL;');
+        await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS experience_years INTEGER;');
+        await sequelize.query('UPDATE users SET experience_years = 0 WHERE experience_years IS NULL;');
+        await sequelize.query('ALTER TABLE users ALTER COLUMN experience_years SET DEFAULT 0;');
+        await sequelize.query('ALTER TABLE users ALTER COLUMN experience_years SET NOT NULL;');
+
         console.log('Đồng bộ hóa database thành công.');
         console.log('Tất cả bảng đã được tạo/cập nhật.');
 

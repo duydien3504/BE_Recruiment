@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const JobController = require('../controllers/JobController');
 const ApplicationController = require('../controllers/ApplicationController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { authenticateToken, authorize } = require('../middleware/authMiddleware');
+const {
+    validateEmployerApplicationsQuery,
+    validateEmployerDownloadCvParam
+} = require('../validators/applicationValidator');
 
 /**
  * @swagger
@@ -118,6 +122,96 @@ router.get('/jobs/:id', authenticateToken, JobController.getMyJobDetail);
  *         description: Không có quyền xem (không phải chủ job)
  */
 router.get('/applications/job/:jobId', authenticateToken, ApplicationController.getJobApplications);
+
+/**
+ * @swagger
+ * /api/v1/employers/applications:
+ *   get:
+ *     summary: Lấy danh sách và lọc ứng viên theo skill, kinh nghiệm
+ *     tags: [Employer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: jobPostId
+ *         schema:
+ *           type: integer
+ *         description: Lọc theo 1 job cụ thể của công ty
+ *       - in: query
+ *         name: skillIds
+ *         schema:
+ *           type: string
+ *           example: "1,2,3"
+ *         description: Danh sách skillId cần lọc, phân tách bởi dấu phẩy
+ *       - in: query
+ *         name: minExperience
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *         description: Số năm kinh nghiệm tối thiểu
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách ứng viên thành công
+ *       400:
+ *         description: Query params không hợp lệ
+ *       403:
+ *         description: Không có quyền truy cập job của công ty khác
+ */
+router.get(
+    '/applications',
+    authenticateToken,
+    authorize('EMPLOYER'),
+    validateEmployerApplicationsQuery,
+    ApplicationController.getEmployerApplications
+);
+
+/**
+ * @swagger
+ * /api/v1/employers/applications/{applicationId}/download-cv:
+ *   get:
+ *     summary: Download CV ứng viên dạng file PDF
+ *     tags: [Employer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       200:
+ *         description: Tải file CV thành công
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Không có quyền truy cập hồ sơ của công ty khác
+ *       404:
+ *         description: Không tìm thấy application hoặc CV
+ */
+router.get(
+    '/applications/:applicationId/download-cv',
+    authenticateToken,
+    authorize('EMPLOYER'),
+    validateEmployerDownloadCvParam,
+    ApplicationController.downloadEmployerApplicationCv
+);
 
 /**
  * @swagger

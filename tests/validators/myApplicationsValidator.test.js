@@ -1,4 +1,7 @@
-const { validateMyApplicationsQuery } = require('../../src/validators/applicationValidator');
+const {
+    validateMyApplicationsQuery,
+    validateEmployerApplicationsQuery
+} = require('../../src/validators/applicationValidator');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 const MESSAGES = require('../../src/constant/messages');
 
@@ -140,6 +143,53 @@ describe('applicationValidator.validateMyApplicationsQuery', () => {
         validateMyApplicationsQuery(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.BAD_REQUEST);
+        expect(next).not.toHaveBeenCalled();
+    });
+});
+
+describe('applicationValidator.validateEmployerApplicationsQuery', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should parse valid query with skillIds string and minExperience', () => {
+        const req = {
+            query: {
+                jobPostId: '10',
+                skillIds: '1,2,3',
+                minExperience: '2',
+                page: '1',
+                limit: '20'
+            }
+        };
+        const res = buildRes();
+
+        validateEmployerApplicationsQuery(req, res, next);
+
+        expect(next).toHaveBeenCalled();
+        expect(req.validatedQuery).toEqual({
+            jobPostId: 10,
+            skillIds: [1, 2, 3],
+            minExperience: 2,
+            page: 1,
+            limit: 20
+        });
+    });
+
+    it('should return 400 when skillIds format is invalid', () => {
+        const req = { query: { skillIds: '1,a,3' } };
+        const res = buildRes();
+
+        validateEmployerApplicationsQuery(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.BAD_REQUEST);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                error: expect.objectContaining({
+                    message: MESSAGES.EMPLOYER_APPLICATION_SKILL_IDS_INVALID
+                })
+            })
+        );
         expect(next).not.toHaveBeenCalled();
     });
 });

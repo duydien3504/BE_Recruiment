@@ -27,7 +27,7 @@ class VNPayHelper {
     }
 
     createPaymentUrl(params) {
-        const { amount, orderInfo, orderId, ipAddr } = params;
+        const { amount, orderInfo, orderId, ipAddr, returnUrl } = params;
 
         const createDate = this.formatDate(new Date());
 
@@ -41,7 +41,7 @@ class VNPayHelper {
             vnp_OrderInfo: orderInfo,
             vnp_OrderType: 'other',
             vnp_Amount: amount * 100,
-            vnp_ReturnUrl: this.vnpReturnUrl,
+            vnp_ReturnUrl: returnUrl || this.vnpReturnUrl,
             vnp_IpAddr: ipAddr,
             vnp_CreateDate: createDate
         };
