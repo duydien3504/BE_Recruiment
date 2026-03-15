@@ -18,8 +18,8 @@ class TransactionRepository extends BaseRepository {
         return await this.findAll({ status }, options);
     }
 
-    async updateStatus(transactionId, status) {
-        return await this.update(transactionId, { status });
+    async updateStatus(transactionId, status, options = {}) {
+        return await this.update(transactionId, { status }, options);
     }
 }
 

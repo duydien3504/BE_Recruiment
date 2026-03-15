@@ -1,7 +1,22 @@
-const { JobPostRepository, TransactionRepository } = require('../repositories');
+const {
+    JobPostRepository,
+    TransactionRepository,
+    CompanyRepository,
+    UserRepository
+} = require('../repositories');
 const vnpayHelper = require('../utils/vnpayHelper');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const { sequelize } = require('../config/database');
+const {
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUSES,
+    PAYMENT_METHODS,
+    VNPAY_RESPONSE_CODES
+} = require('../constant/transactionConstants');
+
+const USER_STATUS_ACTIVE = 'Active';
+const COMPANY_STATUS_ACTIVE = 'Active';
 
 class PaymentService {
     /**
@@ -42,8 +57,9 @@ class PaymentService {
             companyId: company.companyId,
             jobPostId: jobPostId,
             amount: amount,
-            paymentMethod: 'VNPay',
-            status: 'Pending'
+            paymentMethod: PAYMENT_METHODS.VNPAY,
+            transactionType: TRANSACTION_TYPES.JOB_POST,
+            status: TRANSACTION_STATUSES.PENDING
         });
 
         // Create VNPay payment URL
@@ -84,33 +100,50 @@ class PaymentService {
         }
 
         // Check response code
-        if (data.responseCode === '00') {
-            // Payment success
-            await TransactionRepository.update(transaction.transactionId, {
-                status: 'Success',
-                transactionNo: data.transactionNo,
-                bankCode: data.bankCode,
-                payDate: data.payDate
-            });
+        if (data.responseCode === VNPAY_RESPONSE_CODES.SUCCESS) {
+            await sequelize.transaction(async (databaseTransaction) => {
+                await TransactionRepository.update(transaction.transactionId, {
+                    status: TRANSACTION_STATUSES.SUCCESS,
+                    transactionNo: data.transactionNo,
+                    bankCode: data.bankCode,
+                    payDate: data.payDate
+                }, { transaction: databaseTransaction });
 
-            // Update job status to Active and set expiredAt
-            const expiredAt = new Date();
-            expiredAt.setDate(expiredAt.getDate() + 30); // 30 ngày
+                if (transaction.transactionType === TRANSACTION_TYPES.JOB_POST && transaction.jobPostId) {
+                    const expiredAt = new Date();
+                    expiredAt.setDate(expiredAt.getDate() + 30);
 
-            await JobPostRepository.update(transaction.jobPostId, {
-                status: 'Active',
-                expiredAt: expiredAt
+                    await JobPostRepository.update(transaction.jobPostId, {
+                        status: 'Active',
+                        expiredAt: expiredAt
+                    }, { transaction: databaseTransaction });
+                }
+
+                if (transaction.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION) {
+                    const company = await CompanyRepository.findById(transaction.companyId, { transaction: databaseTransaction });
+                    if (!company) {
+                        const error = new Error(MESSAGES.COMPANY_NOT_FOUND);
+                        error.status = HTTP_STATUS.NOT_FOUND;
+                        throw error;
+                    }
+
+                    await CompanyRepository.updateStatus(company.companyId, COMPANY_STATUS_ACTIVE, { transaction: databaseTransaction });
+                    await UserRepository.updateStatus(company.userId, USER_STATUS_ACTIVE, { transaction: databaseTransaction });
+                }
             });
 
             return {
                 success: true,
-                message: MESSAGES.PAYMENT_SUCCESS,
-                jobPostId: transaction.jobPostId
+                message: transaction.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION
+                    ? MESSAGES.EMPLOYER_ACCOUNT_ACTIVATED_SUCCESS
+                    : MESSAGES.PAYMENT_SUCCESS,
+                jobPostId: transaction.jobPostId,
+                transactionType: transaction.transactionType
             };
         } else {
             // Payment failed
             await TransactionRepository.update(transaction.transactionId, {
-                status: 'Failed',
+                status: TRANSACTION_STATUSES.FAILED,
                 transactionNo: data.transactionNo
             });
 

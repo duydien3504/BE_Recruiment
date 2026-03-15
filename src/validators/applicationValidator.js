@@ -59,6 +59,71 @@ const myApplicationsQuerySchema = Joi.object({
         })
 });
 
+const employerApplicationsQuerySchema = Joi.object({
+    jobPostId: Joi.number()
+        .integer()
+        .positive()
+        .optional()
+        .messages({
+            'number.base': MESSAGES.EMPLOYER_APPLICATION_JOB_POST_ID_INVALID,
+            'number.integer': MESSAGES.EMPLOYER_APPLICATION_JOB_POST_ID_INVALID,
+            'number.positive': MESSAGES.EMPLOYER_APPLICATION_JOB_POST_ID_INVALID
+        }),
+    skillIds: Joi.alternatives()
+        .try(
+            Joi.array().items(Joi.number().integer().positive()).min(1),
+            Joi.string().trim().pattern(/^\d+(,\d+)*$/)
+        )
+        .optional()
+        .messages({
+            'array.base': MESSAGES.EMPLOYER_APPLICATION_SKILL_IDS_INVALID,
+            'array.min': MESSAGES.EMPLOYER_APPLICATION_SKILL_IDS_INVALID,
+            'string.pattern.base': MESSAGES.EMPLOYER_APPLICATION_SKILL_IDS_INVALID
+        }),
+    minExperience: Joi.number()
+        .integer()
+        .min(0)
+        .optional()
+        .messages({
+            'number.base': MESSAGES.EMPLOYER_APPLICATION_MIN_EXPERIENCE_INVALID,
+            'number.integer': MESSAGES.EMPLOYER_APPLICATION_MIN_EXPERIENCE_INVALID,
+            'number.min': MESSAGES.EMPLOYER_APPLICATION_MIN_EXPERIENCE_INVALID
+        }),
+    page: Joi.number()
+        .integer()
+        .min(1)
+        .default(PAGINATION_DEFAULTS.PAGE)
+        .optional()
+        .messages({
+            'number.base': MESSAGES.PAGINATION_PAGE_INVALID,
+            'number.integer': MESSAGES.PAGINATION_PAGE_INVALID,
+            'number.min': MESSAGES.PAGINATION_PAGE_INVALID
+        }),
+    limit: Joi.number()
+        .integer()
+        .min(1)
+        .default(PAGINATION_DEFAULTS.LIMIT)
+        .optional()
+        .messages({
+            'number.base': MESSAGES.PAGINATION_LIMIT_INVALID,
+            'number.integer': MESSAGES.PAGINATION_LIMIT_INVALID,
+            'number.min': MESSAGES.PAGINATION_LIMIT_INVALID
+        })
+});
+
+const employerDownloadCvParamSchema = Joi.object({
+    applicationId: Joi.number()
+        .integer()
+        .positive()
+        .required()
+        .messages({
+            'number.base': MESSAGES.APPLICATION_ID_INVALID,
+            'number.integer': MESSAGES.APPLICATION_ID_INVALID,
+            'number.positive': MESSAGES.APPLICATION_ID_INVALID,
+            'any.required': MESSAGES.APPLICATION_ID_INVALID
+        })
+});
+
 /**
  * Middleware validate path params cho DELETE /api/v1/candidate/applications/:applicationId
  * Sử dụng Joi để tránh if-else validation thủ công (theo RULE.md).
@@ -108,8 +173,55 @@ const validateMyApplicationsQuery = (req, res, next) => {
     next();
 };
 
+const validateEmployerApplicationsQuery = (req, res, next) => {
+    const { error, value } = employerApplicationsQuerySchema.validate(req.query, {
+        abortEarly: true,
+        convert: true
+    });
+
+    if (error) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            error: {
+                code: HTTP_STATUS.BAD_REQUEST,
+                message: error.details[0].message
+            }
+        });
+    }
+
+    const normalizedValue = { ...value };
+    if (typeof normalizedValue.skillIds === 'string') {
+        normalizedValue.skillIds = normalizedValue.skillIds.split(',').map((skillId) => Number(skillId));
+    }
+
+    req.validatedQuery = normalizedValue;
+    next();
+};
+
+const validateEmployerDownloadCvParam = (req, res, next) => {
+    const { error, value } = employerDownloadCvParamSchema.validate(
+        { applicationId: Number(req.params.applicationId) },
+        { abortEarly: true }
+    );
+
+    if (error) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+            success: false,
+            error: {
+                code: HTTP_STATUS.BAD_REQUEST,
+                message: error.details[0].message
+            }
+        });
+    }
+
+    req.validatedParams = value;
+    next();
+};
+
 module.exports = {
     validateCancelApplicationParam,
-    validateMyApplicationsQuery
+    validateMyApplicationsQuery,
+    validateEmployerApplicationsQuery,
+    validateEmployerDownloadCvParam
 };
 

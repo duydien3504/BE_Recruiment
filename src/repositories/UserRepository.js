@@ -37,8 +37,8 @@ class UserRepository extends BaseRepository {
         }, options);
     }
 
-    async updateStatus(userId, status) {
-        return await this.update(userId, { status });
+    async updateStatus(userId, status, options = {}) {
+        return await this.update(userId, { status }, options);
     }
 
     async findWithSkills(userId) {

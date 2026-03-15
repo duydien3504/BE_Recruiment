@@ -1,0 +1,32 @@
+const TRANSACTION_TYPES = {
+    JOB_POST: 'JobPost',
+    ACCOUNT_REGISTRATION: 'AccountRegistration'
+};
+
+const TRANSACTION_TYPE_VALUES = Object.values(TRANSACTION_TYPES);
+
+const TRANSACTION_STATUSES = {
+    PENDING: 'Pending',
+    SUCCESS: 'Success',
+    FAILED: 'Failed',
+    CANCELLED: 'Cancelled'
+};
+
+const TRANSACTION_STATUS_VALUES = Object.values(TRANSACTION_STATUSES);
+
+const PAYMENT_METHODS = {
+    VNPAY: 'VNPay'
+};
+
+const VNPAY_RESPONSE_CODES = {
+    SUCCESS: '00'
+};
+
+module.exports = {
+    TRANSACTION_TYPES,
+    TRANSACTION_TYPE_VALUES,
+    TRANSACTION_STATUSES,
+    TRANSACTION_STATUS_VALUES,
+    PAYMENT_METHODS,
+    VNPAY_RESPONSE_CODES
+};

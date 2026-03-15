@@ -1,4 +1,7 @@
-const { validateCancelApplicationParam } = require('../../src/validators/applicationValidator');
+const {
+    validateCancelApplicationParam,
+    validateEmployerDownloadCvParam
+} = require('../../src/validators/applicationValidator');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 const MESSAGES = require('../../src/constant/messages');
 
@@ -83,6 +86,39 @@ describe('applicationValidator.validateCancelApplicationParam', () => {
         validateCancelApplicationParam(req, res, next);
 
         expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.BAD_REQUEST);
+        expect(next).not.toHaveBeenCalled();
+    });
+});
+
+describe('applicationValidator.validateEmployerDownloadCvParam', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should set validatedParams when applicationId is valid', () => {
+        const req = { params: { applicationId: '99' } };
+        const res = buildRes();
+
+        validateEmployerDownloadCvParam(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(req.validatedParams).toEqual({ applicationId: 99 });
+    });
+
+    it('should return 400 when applicationId is invalid', () => {
+        const req = { params: { applicationId: 'abc' } };
+        const res = buildRes();
+
+        validateEmployerDownloadCvParam(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.BAD_REQUEST);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                error: expect.objectContaining({
+                    message: MESSAGES.APPLICATION_ID_INVALID
+                })
+            })
+        );
         expect(next).not.toHaveBeenCalled();
     });
 });

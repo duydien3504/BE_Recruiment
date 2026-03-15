@@ -1,24 +1,40 @@
 const AuthService = require('../../src/services/AuthService');
-const { UserRepository, OtpRepository, RoleRepository } = require('../../src/repositories');
+const {
+    UserRepository,
+    OtpRepository,
+    RoleRepository,
+    CompanyRepository,
+    TransactionRepository
+} = require('../../src/repositories');
 const emailService = require('../../src/services/emailService');
 const jwtHelper = require('../../src/utils/jwtHelper');
+const vnpayHelper = require('../../src/utils/vnpayHelper');
 const { generateOtp, getOtpExpiration } = require('../../src/utils/otpGenerator');
 const bcrypt = require('bcrypt');
 const MESSAGES = require('../../src/constant/messages');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 const { ROLE_NAMES } = require('../../src/constant/roles');
+const { sequelize } = require('../../src/config/database');
+const { TRANSACTION_TYPES, TRANSACTION_STATUSES } = require('../../src/constant/transactionConstants');
 
 jest.mock('../../src/services/emailService');
 jest.mock('../../src/utils/jwtHelper');
+jest.mock('../../src/utils/vnpayHelper');
 jest.mock('../../src/utils/otpGenerator');
 jest.mock('bcrypt');
+jest.mock('../../src/config/database', () => ({
+    sequelize: {
+        transaction: jest.fn()
+    }
+}));
 
 jest.mock('../../src/repositories', () => ({
     UserRepository: {
         findByEmail: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
-        findById: jest.fn()
+        findById: jest.fn(),
+        updateStatus: jest.fn()
     },
     OtpRepository: {
         create: jest.fn(),
@@ -28,6 +44,17 @@ jest.mock('../../src/repositories', () => ({
     },
     RoleRepository: {
         findById: jest.fn()
+    },
+    CompanyRepository: {
+        findByTaxCode: jest.fn(),
+        create: jest.fn(),
+        findById: jest.fn(),
+        updateStatus: jest.fn()
+    },
+    TransactionRepository: {
+        create: jest.fn(),
+        findById: jest.fn(),
+        update: jest.fn()
     }
 }));
 
@@ -494,6 +521,96 @@ describe('AuthService', () => {
                 expect(error.status).toBe(HTTP_STATUS.UNAUTHORIZED);
                 expect(error.message).toBe(MESSAGES.USER_NOT_FOUND);
             }
+        });
+    });
+
+    describe('registerEmployerAndCreatePayment', () => {
+        const registerEmployerData = {
+            email: 'hr@congty.com',
+            password: 'Password123',
+            fullName: 'Nguyen Van A',
+            companyName: 'Tech Company',
+            taxCode: '0123456789',
+            phoneNumber: '0987654321',
+            ipAddr: '127.0.0.1'
+        };
+
+        test('should create user company transaction and return paymentUrl', async () => {
+            UserRepository.findByEmail.mockResolvedValue(null);
+            CompanyRepository.findByTaxCode.mockResolvedValue(null);
+            RoleRepository.findById.mockResolvedValue({ roleId: 2, roleName: 'EMPLOYER' });
+            bcrypt.hash.mockResolvedValue('hashed-password');
+            UserRepository.create.mockResolvedValue({ userId: 'user-1' });
+            CompanyRepository.create.mockResolvedValue({ companyId: 'company-1' });
+            TransactionRepository.create.mockResolvedValue({ transactionId: 1001 });
+            vnpayHelper.createPaymentUrl.mockReturnValue('https://vnpay.vn/payment-url');
+            sequelize.transaction.mockImplementation(async (callback) => callback({}));
+
+            const result = await AuthService.registerEmployerAndCreatePayment(registerEmployerData);
+
+            expect(UserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+                email: 'hr@congty.com',
+                fullName: 'Nguyen Van A',
+                status: 'Inactive'
+            }), expect.any(Object));
+            expect(CompanyRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+                userId: 'user-1',
+                taxCode: '0123456789',
+                status: 'Pending'
+            }), expect.any(Object));
+            expect(TransactionRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+                companyId: 'company-1',
+                transactionType: TRANSACTION_TYPES.ACCOUNT_REGISTRATION,
+                status: TRANSACTION_STATUSES.PENDING,
+                jobPostId: null
+            }), expect.any(Object));
+            expect(result).toEqual({
+                transactionId: 1001,
+                paymentUrl: 'https://vnpay.vn/payment-url'
+            });
+        });
+
+        test('should throw 400 when email exists', async () => {
+            UserRepository.findByEmail.mockResolvedValue({ userId: 'existing' });
+
+            await expect(AuthService.registerEmployerAndCreatePayment(registerEmployerData))
+                .rejects.toMatchObject({
+                    status: HTTP_STATUS.BAD_REQUEST,
+                    message: MESSAGES.EMAIL_ALREADY_EXISTS
+                });
+        });
+    });
+
+    describe('handleEmployerPaymentCallback', () => {
+        test('should activate user and company when callback success', async () => {
+            vnpayHelper.verifyCallback.mockReturnValue({
+                isValid: true,
+                data: {
+                    orderId: '1001',
+                    responseCode: '00'
+                }
+            });
+            TransactionRepository.findById.mockResolvedValue({
+                transactionId: 1001,
+                companyId: 'company-1',
+                transactionType: TRANSACTION_TYPES.ACCOUNT_REGISTRATION
+            });
+            CompanyRepository.findById.mockResolvedValue({
+                companyId: 'company-1',
+                userId: 'user-1'
+            });
+            sequelize.transaction.mockImplementation(async (callback) => callback({}));
+
+            const result = await AuthService.handleEmployerPaymentCallback({
+                vnp_TxnRef: '1001',
+                vnp_ResponseCode: '00',
+                vnp_SecureHash: 'valid'
+            });
+
+            expect(TransactionRepository.update).toHaveBeenCalledWith(1001, { status: TRANSACTION_STATUSES.SUCCESS }, expect.any(Object));
+            expect(CompanyRepository.updateStatus).toHaveBeenCalledWith('company-1', 'Active', expect.any(Object));
+            expect(UserRepository.updateStatus).toHaveBeenCalledWith('user-1', 'Active', expect.any(Object));
+            expect(result.success).toBe(true);
         });
     });
 

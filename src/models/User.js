@@ -39,6 +39,12 @@ const User = sequelize.define('User', {
     bio: {
         type: DataTypes.TEXT
     },
+    experienceYears: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'experience_years'
+    },
     roleId: {
         type: DataTypes.BIGINT,
         allowNull: false,

@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/AuthController');
-const { validateRegister, validateLogin, validateForgotPassword, validateVerifyOtp, validateRefreshToken } = require('../validators/authValidator');
+const {
+    validateRegister,
+    validateEmployerRegister,
+    validateEmployerPaymentCallback,
+    validateLogin,
+    validateForgotPassword,
+    validateVerifyOtp,
+    validateRefreshToken
+} = require('../validators/authValidator');
 
 /**
  * @swagger
@@ -41,6 +49,88 @@ const { validateRegister, validateLogin, validateForgotPassword, validateVerifyO
  *         description: Email đã tồn tại
  */
 router.post('/register', validateRegister, AuthController.register);
+
+/**
+ * @swagger
+ * /api/v1/auth/employer/register:
+ *   post:
+ *     summary: Đăng ký tài khoản nhà tuyển dụng và tạo link thanh toán kích hoạt
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *               - companyName
+ *               - taxCode
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               fullName:
+ *                 type: string
+ *               companyName:
+ *                 type: string
+ *               taxCode:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *           example:
+ *             email: "hr@congty.com"
+ *             password: "Password123"
+ *             fullName: "Nguyen Van A"
+ *             companyName: "Tech Company"
+ *             taxCode: "0123456789"
+ *             phoneNumber: "0987654321"
+ *     responses:
+ *       200:
+ *         description: Khởi tạo đăng ký thành công
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc email/taxCode đã tồn tại
+ *       500:
+ *         description: Lỗi hệ thống hoặc cổng thanh toán
+ */
+router.post('/employer/register', validateEmployerRegister, AuthController.registerEmployer);
+
+/**
+ * @swagger
+ * /api/v1/auth/employer/payment-callback:
+ *   get:
+ *     summary: Callback thanh toán kích hoạt tài khoản nhà tuyển dụng
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: vnp_TxnRef
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: vnp_ResponseCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: vnp_SecureHash
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Xử lý callback thành công
+ *       400:
+ *         description: Chữ ký không hợp lệ hoặc dữ liệu callback không đúng
+ *       404:
+ *         description: Không tìm thấy giao dịch
+ */
+router.get('/employer/payment-callback', validateEmployerPaymentCallback, AuthController.employerPaymentCallback);
 
 /**
  * @swagger

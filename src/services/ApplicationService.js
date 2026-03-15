@@ -1,7 +1,13 @@
-const { ApplicationRepository, JobPostRepository, ResumeRepository } = require('../repositories');
+const {
+    ApplicationRepository,
+    JobPostRepository,
+    ResumeRepository,
+    CompanyRepository
+} = require('../repositories');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 const { PAGINATION_DEFAULTS } = require('../constant/applicationConstants');
+const axios = require('axios');
 
 
 class ApplicationService {
@@ -218,8 +224,6 @@ class ApplicationService {
      * @param {number} jobId
      */
     async getJobApplications(userId, jobId) {
-        const { CompanyRepository } = require('../repositories');
-
         // 1. Check job exists
         const job = await JobPostRepository.findById(jobId);
         if (!job) {
@@ -246,8 +250,6 @@ class ApplicationService {
      * @param {number} applicationId
      */
     async getEmployerApplicationDetail(userId, applicationId) {
-        const { CompanyRepository } = require('../repositories');
-
         // 1. Get application
         const application = await ApplicationRepository.findDetailById(applicationId);
         if (!application) {
@@ -285,8 +287,6 @@ class ApplicationService {
      * @param {string} note
      */
     async updateApplicationStatus(userId, applicationId, status, note) {
-        const { CompanyRepository } = require('../repositories');
-
         const validStatuses = ['Pending', 'Viewed', 'Interview', 'Accepted', 'Rejected'];
         if (!validStatuses.includes(status)) {
             const error = new Error(MESSAGES.INVALID_APPLICATION_STATUS);
@@ -348,6 +348,114 @@ class ApplicationService {
         }
 
         return result;
+    }
+
+    async getEmployerApplications(userId, queryParams) {
+        const { jobPostId, skillIds, minExperience, page, limit } = queryParams;
+
+        const company = await CompanyRepository.findByUserId(userId);
+        if (!company) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        if (jobPostId) {
+            const jobPost = await JobPostRepository.findById(jobPostId);
+            if (!jobPost) {
+                const error = new Error(MESSAGES.JOB_NOT_FOUND);
+                error.status = HTTP_STATUS.NOT_FOUND;
+                throw error;
+            }
+
+            if (jobPost.companyId !== company.companyId) {
+                const error = new Error(MESSAGES.FORBIDDEN);
+                error.status = HTTP_STATUS.FORBIDDEN;
+                throw error;
+            }
+        }
+
+        const offset = (page - PAGINATION_DEFAULTS.PAGE) * limit;
+        const { count, rows } = await ApplicationRepository.findAndCountForEmployerApplications(
+            company.companyId,
+            { jobPostId, skillIds, minExperience, limit, offset }
+        );
+
+        const applications = rows.map((application) => ({
+            applicationId: application.applicationId,
+            userName: application.user?.fullName || null,
+            experienceYears: application.user?.experienceYears ?? 0,
+            skills: (application.user?.skills || []).map((skill) => skill.name),
+            status: application.status,
+            appliedAt: application.createdAt
+        }));
+
+        return {
+            applications,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(count / limit),
+                totalItems: count,
+                limit
+            }
+        };
+    }
+
+    async downloadCvForEmployer(userId, applicationId) {
+        const company = await CompanyRepository.findByUserId(userId);
+        if (!company) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        const application = await ApplicationRepository.findEmployerDownloadCvByApplicationId(applicationId);
+        if (!application) {
+            const error = new Error(MESSAGES.APPLICATION_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (!application.jobPost || application.jobPost.companyId !== company.companyId) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        if (!application.resume || !application.resume.fileUrl) {
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (application.status === 'Pending') {
+            await ApplicationRepository.updateStatus(applicationId, 'Viewed');
+        }
+
+        let response;
+        try {
+            response = await axios({
+                method: 'get',
+                url: application.resume.fileUrl,
+                responseType: 'arraybuffer',
+                timeout: 15000
+            });
+        } catch (downloadError) {
+            const error = new Error(MESSAGES.RESUME_NOT_FOUND);
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        const responseContentType = response.headers ? response.headers['content-type'] : null;
+        const contentType = responseContentType && responseContentType.includes('pdf')
+            ? responseContentType
+            : 'application/pdf';
+
+        return {
+            fileName: application.resume.fileName || `application-${applicationId}-cv.pdf`,
+            contentType,
+            fileBuffer: Buffer.from(response.data)
+        };
     }
 }
 

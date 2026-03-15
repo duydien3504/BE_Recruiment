@@ -242,6 +242,69 @@ describe('AuthController', () => {
         });
     });
 
+    describe('registerEmployer', () => {
+        test('should return 200 with paymentUrl when successful', async () => {
+            req.body = {
+                email: 'hr@congty.com',
+                password: 'Password123',
+                fullName: 'Nguyen Van A',
+                companyName: 'Tech Company',
+                taxCode: '0123456789',
+                phoneNumber: '0987654321'
+            };
+            req.headers = { 'x-forwarded-for': '10.0.0.1' };
+            const mockResult = {
+                paymentUrl: 'https://vnpay.vn/payment-url',
+                transactionId: 1001
+            };
+            AuthService.registerEmployerAndCreatePayment.mockResolvedValue(mockResult);
+
+            await AuthController.registerEmployer(req, res, next);
+
+            expect(AuthService.registerEmployerAndCreatePayment).toHaveBeenCalledWith({
+                ...req.body,
+                ipAddr: '10.0.0.1'
+            });
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                success: true,
+                message: MESSAGES.EMPLOYER_REGISTER_INIT_SUCCESS,
+                data: {
+                    paymentUrl: 'https://vnpay.vn/payment-url',
+                    transactionId: 1001
+                }
+            });
+        });
+    });
+
+    describe('employerPaymentCallback', () => {
+        test('should return success response when callback success', async () => {
+            req.query = {
+                vnp_TxnRef: '1001',
+                vnp_ResponseCode: '00',
+                vnp_SecureHash: 'hash'
+            };
+            AuthService.handleEmployerPaymentCallback.mockResolvedValue({
+                success: true,
+                userId: 'user-1',
+                companyId: 'company-1'
+            });
+
+            await AuthController.employerPaymentCallback(req, res, next);
+
+            expect(AuthService.handleEmployerPaymentCallback).toHaveBeenCalledWith(req.query);
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                success: true,
+                message: MESSAGES.EMPLOYER_ACCOUNT_ACTIVATED_SUCCESS,
+                data: {
+                    userId: 'user-1',
+                    companyId: 'company-1'
+                }
+            });
+        });
+    });
+
     describe('refreshToken', () => {
         test('should return 200 and access token when successful', async () => {
             const mockResult = { accessToken: 'new-access-token' };

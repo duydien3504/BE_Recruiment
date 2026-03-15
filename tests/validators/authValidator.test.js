@@ -1,4 +1,12 @@
-const { validateRegister, validateLogin, validateForgotPassword, validateVerifyOtp, validateRefreshToken } = require('../../src/validators/authValidator');
+const {
+    validateRegister,
+    validateEmployerRegister,
+    validateEmployerPaymentCallback,
+    validateLogin,
+    validateForgotPassword,
+    validateVerifyOtp,
+    validateRefreshToken
+} = require('../../src/validators/authValidator');
 const MESSAGES = require('../../src/constant/messages');
 
 describe('AuthValidator', () => {
@@ -561,6 +569,58 @@ describe('AuthValidator', () => {
                     message: MESSAGES.REFRESH_TOKEN_REQUIRED
                 }
             });
+        });
+    });
+
+    describe('validateEmployerRegister', () => {
+        test('should pass validation with valid data', () => {
+            req.body = {
+                email: 'hr@congty.com',
+                password: 'Password123',
+                fullName: 'Nguyen Van A',
+                companyName: 'Tech Company',
+                taxCode: '0123456789',
+                phoneNumber: '0987654321'
+            };
+
+            validateEmployerRegister(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+            expect(res.status).not.toHaveBeenCalled();
+        });
+
+        test('should fail when taxCode missing', () => {
+            req.body = {
+                email: 'hr@congty.com',
+                password: 'Password123',
+                fullName: 'Nguyen Van A',
+                companyName: 'Tech Company'
+            };
+
+            validateEmployerRegister(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({
+                error: {
+                    code: 400,
+                    message: MESSAGES.TAX_CODE_REQUIRED
+                }
+            });
+        });
+    });
+
+    describe('validateEmployerPaymentCallback', () => {
+        test('should pass validation when required query params exist', () => {
+            req.query = {
+                vnp_ResponseCode: '00',
+                vnp_TxnRef: '1001',
+                vnp_SecureHash: 'hash'
+            };
+
+            validateEmployerPaymentCallback(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+            expect(res.status).not.toHaveBeenCalled();
         });
     });
 });

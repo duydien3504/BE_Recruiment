@@ -11,8 +11,8 @@ class CompanyRepository extends BaseRepository {
         return await this.findOne({ userId });
     }
 
-    async findByTaxCode(taxCode) {
-        return await this.findOne({ taxCode, isDeleted: false });
+    async findByTaxCode(taxCode, options = {}) {
+        return await this.findOne({ taxCode, isDeleted: false }, options);
     }
 
     async searchByName(keyword, options = {}) {
@@ -26,8 +26,8 @@ class CompanyRepository extends BaseRepository {
         return await this.findAll({ status, isDeleted: false }, options);
     }
 
-    async updateStatus(companyId, status) {
-        return await this.update(companyId, { status });
+    async updateStatus(companyId, status, options = {}) {
+        return await this.update(companyId, { status }, options);
     }
 
     async getDetail(companyId) {

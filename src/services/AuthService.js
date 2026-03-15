@@ -1,16 +1,48 @@
 const bcrypt = require('bcrypt');
-const { UserRepository, OtpRepository, RoleRepository } = require('../repositories');
+const {
+    UserRepository,
+    OtpRepository,
+    RoleRepository,
+    CompanyRepository,
+    TransactionRepository
+} = require('../repositories');
 const emailService = require('./emailService');
 const jwtHelper = require('../utils/jwtHelper');
+const vnpayHelper = require('../utils/vnpayHelper');
 const { generateOtp, getOtpExpiration } = require('../utils/otpGenerator');
 const { generatePassword } = require('../utils/passwordGenerator');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
-const { ROLE_NAMES } = require('../constant/roles');
+const { ROLE_NAMES, ROLES } = require('../constant/roles');
+const { sequelize } = require('../config/database');
+const {
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUSES,
+    PAYMENT_METHODS,
+    VNPAY_RESPONSE_CODES
+} = require('../constant/transactionConstants');
 
 const BCRYPT_COST = 14;
+const ACCOUNT_REGISTRATION_AMOUNT = 500000;
+const USER_STATUS_ACTIVE = 'Active';
+const USER_STATUS_INACTIVE = 'Inactive';
+const USER_STATUS_BANNED = 'Banned';
+const COMPANY_STATUS_PENDING = 'Pending';
+const COMPANY_STATUS_ACTIVE = 'Active';
 
 class AuthService {
+    resolveEmployerPaymentCallbackUrl() {
+        if (process.env.VNPAY_EMPLOYER_RETURN_URL) {
+            return process.env.VNPAY_EMPLOYER_RETURN_URL;
+        }
+
+        if (process.env.vnp_Return_Url && process.env.vnp_Return_Url.includes('/api/v1/payments/callback')) {
+            return process.env.vnp_Return_Url.replace('/api/v1/payments/callback', '/api/v1/auth/employer/payment-callback');
+        }
+
+        return process.env.vnp_Return_Url;
+    }
+
     async register(registerData) {
         const { email, password, full_name, role_id } = registerData;
 
@@ -35,7 +67,7 @@ class AuthService {
             password: hashedPassword,
             fullName: full_name,
             roleId: role_id,
-            status: 'Inactive'
+            status: USER_STATUS_INACTIVE
         });
 
         const otpCode = generateOtp();
@@ -74,13 +106,13 @@ class AuthService {
             throw error;
         }
 
-        if (user.status === 'Banned') {
+        if (user.status === USER_STATUS_BANNED) {
             const error = new Error(MESSAGES.ACCOUNT_LOCKED);
             error.status = HTTP_STATUS.FORBIDDEN;
             throw error;
         }
 
-        if (user.status === 'Inactive') {
+        if (user.status === USER_STATUS_INACTIVE) {
             const error = new Error(MESSAGES.ACCOUNT_NOT_VERIFIED);
             error.status = HTTP_STATUS.FORBIDDEN;
             throw error;
@@ -147,7 +179,7 @@ class AuthService {
         const verifyOtpRecord = await OtpRepository.findValidOtp(user.userId, otp, 'VerifyEmail');
         if (verifyOtpRecord) {
             await OtpRepository.markAsUsed(verifyOtpRecord.otpId);
-            await UserRepository.updateStatus(user.userId, 'Active');
+            await UserRepository.updateStatus(user.userId, USER_STATUS_ACTIVE);
 
             return {
                 email: user.email,
@@ -296,6 +328,133 @@ class AuthService {
             // Vẫn trả về success để client clear token dù token lỗi
             return true;
         }
+    }
+
+    async registerEmployerAndCreatePayment(params) {
+        const { email, password, fullName, companyName, taxCode, phoneNumber, ipAddr } = params;
+
+        const existingUser = await UserRepository.findByEmail(email);
+        if (existingUser) {
+            const error = new Error(MESSAGES.EMAIL_ALREADY_EXISTS);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        const existingCompany = await CompanyRepository.findByTaxCode(taxCode);
+        if (existingCompany) {
+            const error = new Error(MESSAGES.TAX_CODE_EXISTS);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        const employerRole = await RoleRepository.findById(ROLES.EMPLOYER);
+        if (!employerRole) {
+            const error = new Error(MESSAGES.INVALID_ROLE);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
+
+        const result = await sequelize.transaction(async (databaseTransaction) => {
+            const user = await UserRepository.create({
+                email,
+                password: hashedPassword,
+                fullName,
+                phoneNumber,
+                roleId: ROLES.EMPLOYER,
+                status: USER_STATUS_INACTIVE
+            }, { transaction: databaseTransaction });
+
+            const company = await CompanyRepository.create({
+                userId: user.userId,
+                name: companyName,
+                taxCode,
+                phoneNumber,
+                status: COMPANY_STATUS_PENDING
+            }, { transaction: databaseTransaction });
+
+            const transaction = await TransactionRepository.create({
+                companyId: company.companyId,
+                jobPostId: null,
+                amount: ACCOUNT_REGISTRATION_AMOUNT,
+                paymentMethod: PAYMENT_METHODS.VNPAY,
+                transactionType: TRANSACTION_TYPES.ACCOUNT_REGISTRATION,
+                status: TRANSACTION_STATUSES.PENDING
+            }, { transaction: databaseTransaction });
+
+            const paymentUrl = vnpayHelper.createPaymentUrl({
+                amount: ACCOUNT_REGISTRATION_AMOUNT,
+                orderInfo: `ThanhToanDangKyNhaTuyenDung${transaction.transactionId}`,
+                orderId: transaction.transactionId.toString(),
+                ipAddr,
+                returnUrl: this.resolveEmployerPaymentCallbackUrl()
+            });
+
+            return {
+                transactionId: transaction.transactionId,
+                paymentUrl
+            };
+        });
+
+        return result;
+    }
+
+    async handleEmployerPaymentCallback(vnpParams) {
+        const { isValid, data } = vnpayHelper.verifyCallback({ ...vnpParams });
+
+        if (!isValid) {
+            const error = new Error(MESSAGES.PAYMENT_SIGNATURE_INVALID);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        const transaction = await TransactionRepository.findById(data.orderId);
+        if (!transaction) {
+            const error = new Error('Không tìm thấy giao dịch.');
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        if (transaction.transactionType !== TRANSACTION_TYPES.ACCOUNT_REGISTRATION) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.BAD_REQUEST;
+            throw error;
+        }
+
+        if (data.responseCode === VNPAY_RESPONSE_CODES.SUCCESS) {
+            const callbackResult = await sequelize.transaction(async (databaseTransaction) => {
+                await TransactionRepository.update(transaction.transactionId, {
+                    status: TRANSACTION_STATUSES.SUCCESS
+                }, { transaction: databaseTransaction });
+
+                const company = await CompanyRepository.findById(transaction.companyId, { transaction: databaseTransaction });
+                if (!company) {
+                    const error = new Error(MESSAGES.COMPANY_NOT_FOUND);
+                    error.status = HTTP_STATUS.NOT_FOUND;
+                    throw error;
+                }
+
+                await CompanyRepository.updateStatus(company.companyId, COMPANY_STATUS_ACTIVE, { transaction: databaseTransaction });
+                await UserRepository.updateStatus(company.userId, USER_STATUS_ACTIVE, { transaction: databaseTransaction });
+
+                return {
+                    success: true,
+                    userId: company.userId,
+                    companyId: company.companyId
+                };
+            });
+
+            return callbackResult;
+        }
+
+        await TransactionRepository.update(transaction.transactionId, {
+            status: TRANSACTION_STATUSES.FAILED
+        });
+
+        return {
+            success: false
+        };
     }
 }
 

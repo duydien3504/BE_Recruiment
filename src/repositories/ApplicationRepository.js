@@ -1,5 +1,6 @@
 const BaseRepository = require('./BaseRepository');
 const { Application } = require('../models');
+const { Op } = require('sequelize');
 
 class ApplicationRepository extends BaseRepository {
     constructor() {
@@ -128,6 +129,83 @@ class ApplicationRepository extends BaseRepository {
             order: [['created_at', 'DESC']],
             limit,
             offset
+        });
+    }
+
+    async findAndCountForEmployerApplications(companyId, { jobPostId, skillIds, minExperience, limit, offset }) {
+        const { JobPost, User, Skill } = require('../models');
+
+        const jobPostWhere = { companyId };
+        if (jobPostId) {
+            jobPostWhere.jobPostId = jobPostId;
+        }
+
+        const userWhere = {};
+        if (typeof minExperience === 'number') {
+            userWhere.experienceYears = { [Op.gte]: minExperience };
+        }
+
+        const skillInclude = {
+            model: Skill,
+            as: 'skills',
+            through: { attributes: [] },
+            attributes: ['skillId', 'name'],
+            required: false
+        };
+
+        if (Array.isArray(skillIds) && skillIds.length > 0) {
+            skillInclude.where = { skillId: { [Op.in]: skillIds } };
+            skillInclude.required = true;
+        }
+
+        return await this.findAndCountAll({}, {
+            attributes: [
+                'applicationId',
+                'jobPostId',
+                'status',
+                ['created_at', 'createdAt']
+            ],
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: ['jobPostId', 'title', 'companyId'],
+                    required: true,
+                    where: jobPostWhere
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['userId', 'fullName', 'experienceYears'],
+                    required: true,
+                    where: userWhere,
+                    include: [skillInclude]
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit,
+            offset,
+            distinct: true
+        });
+    }
+
+    async findEmployerDownloadCvByApplicationId(applicationId) {
+        const { JobPost, Resume } = require('../models');
+
+        return await this.findById(applicationId, {
+            attributes: ['applicationId', 'status', 'resumesId'],
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    attributes: ['jobPostId', 'companyId']
+                },
+                {
+                    model: Resume,
+                    as: 'resume',
+                    attributes: ['resumesId', 'fileName', 'fileUrl']
+                }
+            ]
         });
     }
 

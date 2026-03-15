@@ -3,8 +3,11 @@ class BaseRepository {
         this.model = model;
     }
 
-    async create(data) {
-        return await this.model.create(data);
+    async create(data, options = {}) {
+        if (Object.keys(options).length === 0) {
+            return await this.model.create(data);
+        }
+        return await this.model.create(data, options);
     }
 
     async findById(id, options = {}) {
@@ -32,12 +35,15 @@ class BaseRepository {
         });
     }
 
-    async update(id, data) {
-        const record = await this.findById(id);
+    async update(id, data, options = {}) {
+        const record = await this.findById(id, options);
         if (!record) {
             return null;
         }
-        return await record.update(data);
+        if (Object.keys(options).length === 0) {
+            return await record.update(data);
+        }
+        return await record.update(data, options);
     }
 
     async delete(id) {
