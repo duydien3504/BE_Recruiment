@@ -214,6 +214,39 @@ describe('CompanyController', () => {
         });
     });
 
+    describe('getEmployerStatistics', () => {
+        test('should return 200 with statistics payload', async () => {
+            const mockStatistics = {
+                totalJobPosts: 15,
+                totalApplications: 240,
+                totalAccepted: 12,
+                totalRejected: 50
+            };
+            CompanyService.getEmployerStatistics.mockResolvedValue(mockStatistics);
+
+            await CompanyController.getEmployerStatistics(req, res, next);
+
+            expect(CompanyService.getEmployerStatistics).toHaveBeenCalledWith('uuid-123');
+            expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
+            expect(res.json).toHaveBeenCalledWith({
+                success: true,
+                message: MESSAGES.GET_EMPLOYER_STATISTICS_SUCCESS,
+                data: mockStatistics
+            });
+            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('should call next when service throws error', async () => {
+            const mockError = new Error(MESSAGES.FORBIDDEN);
+            mockError.status = HTTP_STATUS.FORBIDDEN;
+            CompanyService.getEmployerStatistics.mockRejectedValue(mockError);
+
+            await CompanyController.getEmployerStatistics(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(mockError);
+        });
+    });
+
     describe('getCompanyJobs', () => {
         test('should return 200 and list of jobs', async () => {
             req.params = { id: 'uuid-123' };

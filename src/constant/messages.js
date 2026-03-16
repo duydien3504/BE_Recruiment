@@ -39,6 +39,7 @@ const MESSAGES = {
     ALREADY_EMPLOYER: 'Tài khoản đã là nhà tuyển dụng hoặc đang chờ duyệt.',
     GET_COMPANY_SUCCESS: 'Lấy thông tin công ty thành công.',
     GET_COMPANIES_SUCCESS: 'Lấy danh sách công ty thành công.',
+    GET_EMPLOYER_STATISTICS_SUCCESS: 'Thống kê dữ liệu thành công.',
     GET_COMPANY_JOBS_SUCCESS: 'Lấy danh sách việc làm của công ty thành công.',
     GET_JOBS_SUCCESS: 'Lấy danh sách việc làm thành công.',
     GET_JOB_DETAIL_SUCCESS: 'Lấy chi tiết việc làm thành công.',

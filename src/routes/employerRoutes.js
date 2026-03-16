@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const JobController = require('../controllers/JobController');
 const ApplicationController = require('../controllers/ApplicationController');
+const CompanyController = require('../controllers/CompanyController');
 const { authenticateToken, authorize } = require('../middleware/authMiddleware');
 const {
     validateEmployerApplicationsQuery,
@@ -61,6 +62,44 @@ router.get('/jobs', authenticateToken, JobController.getMyJobs);
  *         description: Không tìm thấy việc làm
  */
 router.get('/jobs/:id', authenticateToken, JobController.getMyJobDetail);
+
+/**
+ * @swagger
+ * /api/v1/employers/statistics:
+ *   get:
+ *     summary: Thống kê dashboard cho nhà tuyển dụng
+ *     tags: [Employer]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Thống kê dữ liệu thành công."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalJobPosts:
+ *                       type: integer
+ *                     totalApplications:
+ *                       type: integer
+ *                     totalAccepted:
+ *                       type: integer
+ *                     totalRejected:
+ *                       type: integer
+ *       403:
+ *         description: Không có quyền truy cập
+ */
+router.get('/statistics', authenticateToken, authorize('Employer'), CompanyController.getEmployerStatistics);
 
 /**
  * @swagger

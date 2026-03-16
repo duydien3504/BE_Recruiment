@@ -1,5 +1,5 @@
 const CompanyService = require('../../src/services/CompanyService');
-const { CompanyRepository, JobPostRepository } = require('../../src/repositories');
+const { CompanyRepository, JobPostRepository, ApplicationRepository } = require('../../src/repositories');
 const MESSAGES = require('../../src/constant/messages');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 const uploadService = require('../../src/utils/uploadService');
@@ -13,7 +13,12 @@ jest.mock('../../src/repositories', () => ({
         getCompanies: jest.fn()
     },
     JobPostRepository: {
-        findActiveJobsByCompany: jest.fn()
+        findActiveJobsByCompany: jest.fn(),
+        countByCompanyId: jest.fn()
+    },
+    ApplicationRepository: {
+        countByCompanyId: jest.fn(),
+        countByCompanyIdAndStatus: jest.fn()
     }
 }));
 
@@ -250,6 +255,40 @@ describe('CompanyService', () => {
                 expect(error.message).toBe(MESSAGES.COMPANY_NOT_FOUND);
                 expect(error.status).toBe(HTTP_STATUS.NOT_FOUND);
             }
+        });
+    });
+
+    describe('getEmployerStatistics', () => {
+        test('should return employer statistics successfully', async () => {
+            CompanyRepository.findByUserId.mockResolvedValue({ companyId: 'company-uuid-123' });
+            JobPostRepository.countByCompanyId.mockResolvedValue(15);
+            ApplicationRepository.countByCompanyId.mockResolvedValue(240);
+            ApplicationRepository.countByCompanyIdAndStatus
+                .mockResolvedValueOnce(12)
+                .mockResolvedValueOnce(50);
+
+            const result = await CompanyService.getEmployerStatistics('user-uuid-123');
+
+            expect(CompanyRepository.findByUserId).toHaveBeenCalledWith('user-uuid-123');
+            expect(JobPostRepository.countByCompanyId).toHaveBeenCalledWith('company-uuid-123');
+            expect(ApplicationRepository.countByCompanyId).toHaveBeenCalledWith('company-uuid-123');
+            expect(ApplicationRepository.countByCompanyIdAndStatus).toHaveBeenNthCalledWith(1, 'company-uuid-123', 'Accepted');
+            expect(ApplicationRepository.countByCompanyIdAndStatus).toHaveBeenNthCalledWith(2, 'company-uuid-123', 'Rejected');
+            expect(result).toEqual({
+                totalJobPosts: 15,
+                totalApplications: 240,
+                totalAccepted: 12,
+                totalRejected: 50
+            });
+        });
+
+        test('should throw forbidden when user has no company', async () => {
+            CompanyRepository.findByUserId.mockResolvedValue(null);
+
+            await expect(CompanyService.getEmployerStatistics('user-uuid-123')).rejects.toMatchObject({
+                message: MESSAGES.FORBIDDEN,
+                status: HTTP_STATUS.FORBIDDEN
+            });
         });
     });
 });

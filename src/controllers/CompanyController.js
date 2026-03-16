@@ -125,6 +125,21 @@ class CompanyController {
         }
     }
 
+    async getEmployerStatistics(req, res, next) {
+        try {
+            const userId = req.user.userId;
+            const statistics = await CompanyService.getEmployerStatistics(userId);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: MESSAGES.GET_EMPLOYER_STATISTICS_SUCCESS,
+                data: statistics
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     /**
      * Xem danh sách việc làm của công ty
      * @route GET /api/v1/companies/:id/jobs
