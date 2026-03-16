@@ -1,7 +1,8 @@
-const { CompanyRepository, JobPostRepository } = require('../repositories');
+const { CompanyRepository, JobPostRepository, ApplicationRepository } = require('../repositories');
 const uploadService = require('../utils/uploadService');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const { APPLICATION_STATUS_VALUES } = require('../constant/applicationConstants');
 
 class CompanyService {
     /**
@@ -138,6 +139,36 @@ class CompanyService {
                 limit: limitNum,
                 totalPages: Math.ceil(count / limitNum)
             }
+        };
+    }
+
+    async getEmployerStatistics(userId) {
+        const company = await CompanyRepository.findByUserId(userId);
+        if (!company) {
+            const error = new Error(MESSAGES.FORBIDDEN);
+            error.status = HTTP_STATUS.FORBIDDEN;
+            throw error;
+        }
+
+        const companyId = company.companyId;
+
+        const [
+            totalJobPosts,
+            totalApplications,
+            totalAccepted,
+            totalRejected
+        ] = await Promise.all([
+            JobPostRepository.countByCompanyId(companyId),
+            ApplicationRepository.countByCompanyId(companyId),
+            ApplicationRepository.countByCompanyIdAndStatus(companyId, APPLICATION_STATUS_VALUES.ACCEPTED),
+            ApplicationRepository.countByCompanyIdAndStatus(companyId, APPLICATION_STATUS_VALUES.REJECTED)
+        ]);
+
+        return {
+            totalJobPosts,
+            totalApplications,
+            totalAccepted,
+            totalRejected
         };
     }
 

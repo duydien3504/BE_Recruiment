@@ -64,6 +64,37 @@ class ApplicationRepository extends BaseRepository {
         return await this.findAll({ status }, options);
     }
 
+    async countByCompanyId(companyId) {
+        const { JobPost } = require('../models');
+        return await this.model.count({
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    required: true,
+                    attributes: [],
+                    where: { companyId }
+                }
+            ]
+        });
+    }
+
+    async countByCompanyIdAndStatus(companyId, status) {
+        const { JobPost } = require('../models');
+        return await this.model.count({
+            where: { status },
+            include: [
+                {
+                    model: JobPost,
+                    as: 'jobPost',
+                    required: true,
+                    attributes: [],
+                    where: { companyId }
+                }
+            ]
+        });
+    }
+
     async updateStatus(applicationId, status, employerNote = null) {
         const updateData = { status };
         if (employerNote) {

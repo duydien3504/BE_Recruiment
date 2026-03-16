@@ -18,6 +18,10 @@ class JobPostRepository extends BaseRepository {
         });
     }
 
+    async countByCompanyId(companyId) {
+        return await this.count({ companyId, isDeleted: false });
+    }
+
     async findByStatus(status, options = {}) {
         return await this.findAll({ status, isDeleted: false }, options);
     }

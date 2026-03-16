@@ -1,10 +1,57 @@
 const bcrypt = require('bcryptjs');
 const { Role, Category, Location, Level, Skill, User, Company, JobPost } = require('../src/models');
+const { Op } = require('sequelize');
+
+const IT_JOB_SEED_PREFIX = '[IT-SEED]';
+const IT_JOB_TARGET_COUNT = 200;
+const IT_JOB_CHUNK_SIZE = 50;
+const IT_JOB_EXPIRED_DAYS = 45;
+const IT_JOB_ROLE_TITLES = [
+    'Frontend Developer',
+    'Backend Developer',
+    'Fullstack Developer',
+    'Mobile Developer',
+    'DevOps Engineer',
+    'QA Engineer',
+    'QC Engineer',
+    'Manual Tester',
+    'Automation Tester',
+    'Performance Tester',
+    'Business Analyst',
+    'Product Owner',
+    'Product Manager',
+    'Project Manager',
+    'AI Engineer',
+    'Machine Learning Engineer',
+    'Data Engineer',
+    'Data Scientist',
+    'Cloud Engineer',
+    'Security Engineer'
+];
+
+const getSalaryRangeByRole = (roleTitle) => {
+    const roleTitleLowerCase = roleTitle.toLowerCase();
+
+    if (roleTitleLowerCase.includes('manager')) {
+        return { salaryMin: 22000000, salaryMax: 42000000 };
+    }
+    if (roleTitleLowerCase.includes('owner') || roleTitleLowerCase.includes('analyst')) {
+        return { salaryMin: 18000000, salaryMax: 35000000 };
+    }
+    if (roleTitleLowerCase.includes('ai') || roleTitleLowerCase.includes('machine learning') || roleTitleLowerCase.includes('data scientist')) {
+        return { salaryMin: 25000000, salaryMax: 50000000 };
+    }
+    if (roleTitleLowerCase.includes('devops') || roleTitleLowerCase.includes('security') || roleTitleLowerCase.includes('cloud')) {
+        return { salaryMin: 22000000, salaryMax: 45000000 };
+    }
+    if (roleTitleLowerCase.includes('tester') || roleTitleLowerCase.includes('qa') || roleTitleLowerCase.includes('qc')) {
+        return { salaryMin: 12000000, salaryMax: 25000000 };
+    }
+    return { salaryMin: 14000000, salaryMax: 32000000 };
+};
 
 const seedData = async () => {
     try {
-        console.log('Đang kiểm tra dữ liệu mặc định hệ thống...');
-
         // 1. Kiểm tra và tạo ROLES (3 data)
         const roleCount = await Role.count();
         if (roleCount === 0) {
@@ -159,8 +206,64 @@ const seedData = async () => {
                 await JobPost.bulkCreate(chunk);
             }
         }
+
+        if (company) {
+            const existingItSeedJobCount = await JobPost.count({
+                where: {
+                    companyId: company.companyId,
+                    title: {
+                        [Op.like]: `${IT_JOB_SEED_PREFIX}%`
+                    }
+                }
+            });
+
+            const missingItJobCount = IT_JOB_TARGET_COUNT - existingItSeedJobCount;
+
+            if (missingItJobCount > 0) {
+                const itCategories = await Category.findAll({
+                    where: {
+                        name: {
+                            [Op.iLike]: '%Công nghệ Thông tin%'
+                        }
+                    }
+                });
+
+                const availableCategories = itCategories.length > 0 ? itCategories : await Category.findAll();
+                const availableLocations = await Location.findAll();
+                const availableLevels = await Level.findAll();
+
+                const itJobsToCreate = [];
+                for (let index = 0; index < missingItJobCount; index++) {
+                    const sequenceNumber = existingItSeedJobCount + index + 1;
+                    const roleTitle = IT_JOB_ROLE_TITLES[index % IT_JOB_ROLE_TITLES.length];
+                    const category = availableCategories[index % availableCategories.length];
+                    const location = availableLocations[index % availableLocations.length];
+                    const level = availableLevels[index % availableLevels.length];
+                    const salaryRange = getSalaryRangeByRole(roleTitle);
+
+                    itJobsToCreate.push({
+                        companyId: company.companyId,
+                        categoryId: category.categoryId,
+                        locationId: location.locationId,
+                        levelId: level.levelId,
+                        title: `${IT_JOB_SEED_PREFIX} ${roleTitle} #${sequenceNumber}`,
+                        description: `Tuyển dụng vị trí ${roleTitle} cho sản phẩm công nghệ, làm việc theo mô hình Agile/Scrum, phối hợp chặt chẽ với đội ngũ kỹ thuật và sản phẩm.`,
+                        requirements: `- Có kinh nghiệm phù hợp với vị trí ${roleTitle}.\n- Nắm vững quy trình phát triển phần mềm.\n- Kỹ năng làm việc nhóm và giao tiếp tốt.\n- Tinh thần trách nhiệm và chủ động.`,
+                        salaryMin: salaryRange.salaryMin,
+                        salaryMax: salaryRange.salaryMax,
+                        status: 'Active',
+                        expiredAt: new Date(Date.now() + IT_JOB_EXPIRED_DAYS * 24 * 60 * 60 * 1000)
+                    });
+                }
+
+                while (itJobsToCreate.length > 0) {
+                    const chunk = itJobsToCreate.splice(0, IT_JOB_CHUNK_SIZE);
+                    await JobPost.bulkCreate(chunk);
+                }
+            }
+        }
     } catch (error) {
-        console.error('Lỗi khi seed data:', error.message);
+        throw error;
     }
 };
 
