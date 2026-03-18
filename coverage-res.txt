@@ -1,0 +1,225 @@
+PASS tests/services/InterviewQuestionService.test.js
+  InterviewQuestionService
+    generateInterviewQuestions
+      √ should throw 404 if application not found (9 ms)
+      √ should throw 403 if company mismatch (1 ms)
+      √ should return existing questions if not force regenerate (1 ms)
+      √ should throw 400 if resume missing (1 ms)
+      √ should throw 400 if resume extraction fails (1 ms)
+      √ should throw 400 if resume extraction is empty (3 ms)
+      √ should successfully generate and save new questions (2 ms)
+      √ should rollback transaction on DB error (1 ms)
+
+  console.log
+    [dotenv@17.2.3] injecting env (26) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.log
+    [INFO] Kết nối Neon PostgreSQL với SSL enabled
+
+      at Object.log (src/config/database.js:30:13)
+
+  console.error
+    [InterviewQuestionController] Application ID not found
+
+    [0m [90m 23 |[39m             })[33m;[39m
+     [90m 24 |[39m         } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 25 |[39m             console[33m.[39merror([32m'[InterviewQuestionController]'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                     [31m[1m^[22m[39m
+     [90m 26 |[39m             [36mreturn[39m res[33m.[39mstatus(error[33m.[39mstatusCode [33m||[39m [35m500[39m)[33m.[39mjson({
+     [90m 27 |[39m                 success[33m:[39m [36mfalse[39m[33m,[39m
+     [90m 28 |[39m                 message[33m:[39m error[33m.[39mmessage [33m||[39m [32m'Internal server error while generating questions'[39m[0m
+
+      at InterviewQuestionController.error [as generateQuestions] (src/controllers/InterviewQuestionController.js:25:21)
+      at Object.<anonymous> (tests/controllers/InterviewQuestionController.test.js:56:13)
+
+  console.error
+    [InterviewQuestionController] Some DB weird error
+
+    [0m [90m 23 |[39m             })[33m;[39m
+     [90m 24 |[39m         } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 25 |[39m             console[33m.[39merror([32m'[InterviewQuestionController]'[39m[33m,[39m error[33m.[39mmessage)[33m;[39m
+     [90m    |[39m                     [31m[1m^[22m[39m
+     [90m 26 |[39m             [36mreturn[39m res[33m.[39mstatus(error[33m.[39mstatusCode [33m||[39m [35m500[39m)[33m.[39mjson({
+     [90m 27 |[39m                 success[33m:[39m [36mfalse[39m[33m,[39m
+     [90m 28 |[39m                 message[33m:[39m error[33m.[39mmessage [33m||[39m [32m'Internal server error while generating questions'[39m[0m
+
+      at InterviewQuestionController.error [as generateQuestions] (src/controllers/InterviewQuestionController.js:25:21)
+      at Object.<anonymous> (tests/controllers/InterviewQuestionController.test.js:77:13)
+
+PASS tests/controllers/InterviewQuestionController.test.js
+  InterviewQuestionController
+    generateQuestions
+      √ should successfully return generated questions (1 ms)
+      √ should handle service errors gracefully (4 ms)
+      √ should handle generic 500 errors gracefully (2 ms)
+
+PASS tests/validators/interviewQuestionValidator.test.js
+  interviewQuestionValidator.validateGenerateQuestions
+    √ should call next() and set validatedParams when applicationId is valid and force_regenerate is absent (1 ms)
+    √ should set force_regenerate when passed in body (1 ms)
+    √ should return 400 when applicationId is invalid (1 ms)
+    √ should return 400 when applicationId is negative (1 ms)
+
+PASS tests/utils/pdfExtractor.test.js
+  pdfExtractor
+    √ should successfully extract text from PDF URL (1 ms)
+    √ should throw an error when axios fails (5 ms)
+    √ should throw an error when pdfParse fails (1 ms)
+
+PASS tests/repositories/InterviewQuestionRepository.test.js
+  InterviewQuestionRepository
+    deleteByApplicationId
+      √ should call destroy with correct where clause
+    bulkCreateQuestions
+      √ should call bulkCreate with correct payload
+    findByApplicationId
+      √ should call findAll with correct ordering (1 ms)
+
+---------------------------------|---------|----------|---------|---------|-------------------
+File                             | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+---------------------------------|---------|----------|---------|---------|-------------------
+All files                        |    6.07 |     4.18 |    3.18 |    6.15 |                   
+ constant                        |      50 |      100 |     100 |      50 |                   
+  applicationConstants.js        |       0 |      100 |     100 |       0 | 5-17              
+  messages.js                    |       0 |      100 |     100 |       0 | 1-170             
+  roles.js                       |       0 |      100 |     100 |       0 | 1-13              
+  statusCode.js                  |     100 |      100 |     100 |     100 |                   
+  transactionConstants.js        |     100 |      100 |     100 |     100 |                   
+ controllers                     |    1.38 |     6.32 |    0.97 |    1.38 |                   
+  AdminController.js             |       0 |      100 |       0 |       0 | 1-38              
+  ApplicationController.js       |       0 |        0 |       0 |       0 | 1-213             
+  AuthController.js              |       0 |        0 |       0 |       0 | 1-152             
+  CategoryController.js          |       0 |        0 |       0 |       0 | 1-115             
+  ChatController.js              |       0 |      100 |       0 |       0 | 1-94              
+  CompanyController.js           |       0 |        0 |       0 |       0 | 1-162             
+  FollowController.js            |       0 |        0 |       0 |       0 | 1-75              
+  InterviewController.js         |       0 |        0 |       0 |       0 | 1-157             
+  InterviewQuestionController.js |     100 |    83.33 |     100 |     100 | 28                
+  JobController.js               |       0 |        0 |       0 |       0 | 1-261             
+  LevelController.js             |       0 |      100 |       0 |       0 | 1-99              
+  LocationController.js          |       0 |        0 |       0 |       0 | 1-98              
+  NotificationController.js      |       0 |      100 |       0 |       0 | 1-78              
+  PaymentController.js           |       0 |        0 |       0 |       0 | 1-97              
+  ResumeController.js            |       0 |        0 |       0 |       0 | 1-136             
+  SavedJobController.js          |       0 |        0 |       0 |       0 | 1-75              
+  SkillController.js             |       0 |        0 |       0 |       0 | 1-98              
+  UserController.js              |       0 |        0 |       0 |       0 | 1-207             
+ middleware                      |       0 |        0 |       0 |       0 |                   
+  authMiddleware.js              |       0 |        0 |       0 |       0 | 1-144             
+  uploadMiddleware.js            |       0 |        0 |       0 |       0 | 1-70              
+ models                          |     100 |      100 |     100 |     100 |                   
+  Application.js                 |     100 |      100 |     100 |     100 |                   
+  Category.js                    |     100 |      100 |     100 |     100 |                   
+  Company.js                     |     100 |      100 |     100 |     100 |                   
+  Conversation.js                |     100 |      100 |     100 |     100 |                   
+  Follow.js                      |     100 |      100 |     100 |     100 |                   
+  Interview.js                   |     100 |      100 |     100 |     100 |                   
+  InterviewQuestion.js           |     100 |      100 |     100 |     100 |                   
+  JobPost.js                     |     100 |      100 |     100 |     100 |                   
+  JobSkill.js                    |     100 |      100 |     100 |     100 |                   
+  Level.js                       |     100 |      100 |     100 |     100 |                   
+  Location.js                    |     100 |      100 |     100 |     100 |                   
+  Message.js                     |     100 |      100 |     100 |     100 |                   
+  Notification.js                |     100 |      100 |     100 |     100 |                   
+  Otp.js                         |     100 |      100 |     100 |     100 |                   
+  Resume.js                      |     100 |      100 |     100 |     100 |                   
+  Role.js                        |     100 |      100 |     100 |     100 |                   
+  SavedJob.js                    |     100 |      100 |     100 |     100 |                   
+  Skill.js                       |     100 |      100 |     100 |     100 |                   
+  Transaction.js                 |     100 |      100 |     100 |     100 |                   
+  User.js                        |     100 |      100 |     100 |     100 |                   
+  UserSkill.js                   |     100 |      100 |     100 |     100 |                   
+ repositories                    |    6.64 |        0 |    5.83 |     6.8 |                   
+  ApplicationRepository.js       |    11.9 |        0 |    7.14 |    11.9 | 11-277            
+  BaseRepository.js              |   13.04 |        0 |   18.18 |   13.04 | 7-18,32-67        
+  CategoryRepository.js          |       0 |        0 |       0 |       0 | 1-22              
+  CompanyRepository.js           |   29.41 |        0 |    12.5 |   29.41 | 11-57             
+  ConversationRepository.js      |       0 |        0 |       0 |       0 | 1-97              
+  FollowRepository.js            |       0 |        0 |       0 |       0 | 1-42              
+  InterviewQuestionRepository.js |     100 |        0 |     100 |     100 | 9-16              
+  InterviewRepository.js         |       0 |        0 |       0 |       0 | 1-100             
+  JobPostRepository.js           |       0 |        0 |       0 |       0 | 1-120             
+  JobSkillRepository.js          |       0 |      100 |       0 |       0 | 1-27              
+  LevelRepository.js             |       0 |        0 |       0 |       0 | 1-33              
+  LocationRepository.js          |       0 |        0 |       0 |       0 | 1-18              
+  MessageRepository.js           |       0 |        0 |       0 |       0 | 1-20              
+  NotificationRepository.js      |       0 |        0 |       0 |       0 | 1-33              
+  OtpRepository.js               |       0 |      100 |       0 |       0 | 1-40              
+  ResumeRepository.js            |       0 |        0 |       0 |       0 | 1-47              
+  RoleRepository.js              |       0 |      100 |       0 |       0 | 1-14              
+  SavedJobRepository.js          |       0 |        0 |       0 |       0 | 1-59              
+  SkillRepository.js             |       0 |        0 |       0 |       0 | 1-24              
+  TransactionRepository.js       |       0 |        0 |       0 |       0 | 1-26              
+  UserRepository.js              |       0 |        0 |       0 |       0 | 1-114             
+  UserSkillRepository.js         |       0 |      100 |       0 |       0 | 1-31              
+ routes                          |       0 |      100 |     100 |       0 |                   
+  adminRoutes.js                 |       0 |      100 |     100 |       0 | 1-572             
+  applicationRoutes.js           |       0 |      100 |     100 |       0 | 1-63              
+  authRoutes.js                  |       0 |      100 |     100 |       0 | 1-421             
+  candidateRoutes.js             |       0 |      100 |     100 |       0 | 1-352             
+  categoryRoutes.js              |       0 |      100 |     100 |       0 | 1-79              
+  companyRoutes.js               |       0 |      100 |     100 |       0 | 1-362             
+  conversationRoutes.js          |       0 |      100 |     100 |       0 | 1-188             
+  employerRoutes.js              |       0 |      100 |     100 |       0 | 1-446             
+  followRoutes.js                |       0 |      100 |     100 |       0 | 1-138             
+  interviewRoutes.js             |       0 |      100 |     100 |       0 | 1-194             
+  jobRoutes.js                   |       0 |      100 |     100 |       0 | 1-299             
+  levelRoutes.js                 |       0 |      100 |     100 |       0 | 1-262             
+  locationRoutes.js              |       0 |      100 |     100 |       0 | 1-42              
+  messageRoutes.js               |       0 |      100 |     100 |       0 | 1-43              
+  notificationRoutes.js          |       0 |      100 |     100 |       0 | 1-104             
+  paymentRoutes.js               |       0 |      100 |     100 |       0 | 1-80              
+  resumeRoutes.js                |       0 |      100 |     100 |       0 | 1-261             
+  savedJobRoutes.js              |       0 |      100 |     100 |       0 | 1-141             
+  skillRoutes.js                 |       0 |      100 |     100 |       0 | 1-42              
+  userRoutes.js                  |       0 |      100 |     100 |       0 | 1-424             
+ services                        |    3.55 |     4.62 |    2.08 |    3.58 |                   
+  AIService.js                   |     8.1 |      9.3 |    5.55 |    8.82 | 13-232            
+  ApplicationService.js          |       0 |        0 |       0 |       0 | 6-462             
+  AuthService.js                 |       0 |        0 |       0 |       0 | 1-461             
+  CategoryService.js             |       0 |        0 |       0 |       0 | 1-79              
+  ChatService.js                 |       0 |        0 |       0 |       0 | 1-232             
+  CompanyService.js              |       0 |        0 |       0 |       0 | 1-196             
+  FollowService.js               |       0 |        0 |       0 |       0 | 1-59              
+  InterviewQuestionService.js    |     100 |      100 |     100 |     100 |                   
+  InterviewService.js            |       0 |        0 |       0 |       0 | 1-251             
+  JobService.js                  |       0 |        0 |       0 |       0 | 1-526             
+  LevelService.js                |       0 |        0 |       0 |       0 | 1-127             
+  LocationService.js             |       0 |        0 |       0 |       0 | 1-66              
+  NotificationService.js         |       0 |        0 |       0 |       0 | 1-61              
+  PaymentService.js              |       0 |        0 |       0 |       0 | 6-158             
+  ResumeService.js               |       0 |        0 |       0 |       0 | 1-171             
+  SavedJobService.js             |       0 |        0 |       0 |       0 | 1-59              
+  SkillService.js                |       0 |        0 |       0 |       0 | 1-66              
+  SocketService.js               |       0 |        0 |       0 |       0 | 4-77              
+  StatisticsService.js           |       0 |      100 |       0 |       0 | 1-81              
+  TransactionService.js          |       0 |        0 |       0 |       0 | 1-31              
+  UserService.js                 |       0 |        0 |       0 |       0 | 1-336             
+  emailService.js                |       0 |      100 |       0 |       0 | 1-344             
+ utils                           |    7.33 |        0 |    4.76 |    7.61 |                   
+  jwtHelper.js                   |       0 |        0 |       0 |       0 | 1-48              
+  otpGenerator.js                |       0 |      100 |       0 |       0 | 1-13              
+  passwordGenerator.js           |       0 |        0 |       0 |       0 | 8-31              
+  pdfExtractor.js                |     100 |      100 |     100 |     100 |                   
+  uploadService.js               |       0 |        0 |       0 |       0 | 1-62              
+  vnpayHelper.js                 |       0 |        0 |       0 |       0 | 1-98              
+ validators                      |    6.45 |     9.75 |     3.7 |     6.8 |                   
+  applicationValidator.js        |       0 |        0 |       0 |       0 | 1-221             
+  authValidator.js               |       0 |        0 |       0 |       0 | 1-179             
+  companyValidator.js            |       0 |        0 |       0 |       0 | 1-61              
+  interviewQuestionValidator.js  |     100 |    66.66 |     100 |     100 | 26-29             
+  jobValidator.js                |       0 |        0 |       0 |       0 | 1-107             
+  levelValidator.js              |       0 |        0 |       0 |       0 | 1-92              
+  userValidator.js               |       0 |        0 |       0 |       0 | 1-168             
+---------------------------------|---------|----------|---------|---------|-------------------
+Jest: "global" coverage threshold for statements (80%) not met: 6.07%
+Jest: "global" coverage threshold for branches (80%) not met: 4.18%
+Jest: "global" coverage threshold for lines (80%) not met: 6.15%
+Jest: "global" coverage threshold for functions (80%) not met: 3.18%
+Test Suites: 5 passed, 5 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        2.784 s
+Ran all test suites matching tests/controllers/InterviewQuestionController.test.js|tests/services/InterviewQuestionService.test.js|tests/repositories/InterviewQuestionRepository.test.js|tests/validators/interviewQuestionValidator.test.js|tests/utils/pdfExtractor.test.js.

@@ -8,6 +8,8 @@ const {
     validateEmployerApplicationsQuery,
     validateEmployerDownloadCvParam
 } = require('../validators/applicationValidator');
+const { validateGenerateQuestions } = require('../validators/interviewQuestionValidator');
+const InterviewQuestionController = require('../controllers/InterviewQuestionController');
 
 /**
  * @swagger
@@ -398,5 +400,47 @@ const InterviewController = require('../controllers/InterviewController');
  *                     type: object
  */
 router.get('/interviews', authenticateToken, InterviewController.getEmployerInterviews);
+
+/**
+ * @swagger
+ * /api/v1/employer/applications/{applicationId}/generate-interview-questions:
+ *   post:
+ *     summary: Tạo gợi ý câu hỏi phỏng vấn cá nhân hóa qua AI
+ *     tags: [Employer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               force_regenerate:
+ *                 type: boolean
+ *                 default: false
+ *     responses:
+ *       200:
+ *         description: Generate interview questions successfully.
+ *       400:
+ *         description: Candidate CV is missing or invalid.
+ *       403:
+ *         description: You do not have permission.
+ *       404:
+ *         description: Application not found.
+ */
+router.post(
+    '/applications/:applicationId/generate-interview-questions',
+    authenticateToken,
+    authorize('EMPLOYER'),
+    validateGenerateQuestions,
+    InterviewQuestionController.generateQuestions
+);
 
 module.exports = router;

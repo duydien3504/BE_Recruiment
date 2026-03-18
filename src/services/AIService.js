@@ -123,6 +123,51 @@ class AIService {
         return result;
     }
 
+    async generateInterviewQuestions(cvText, jdText) {
+        const prompt = `Bạn là chuyên gia tuyển dụng Kỹ sư Phần mềm. Dựa trên CV của ứng viên và Mô tả công việc (Job Description) bên dưới, hãy tạo ra 10 câu hỏi phỏng vấn chuyên sâu và cá nhân hóa.
+
+Yêu cầu cụ thể:
+1. Số lượng: Tối thiểu 10 câu hỏi.
+2. Nội dung: Tối thiểu 5 câu hỏi phải lấy thông tin trực tiếp (tên dự án, công nghệ, công ty cũ, hoặc kinh nghiệm) từ CV ứng viên để xoáy sâu. Không hỏi lý thuyết chung chung.
+3. Độ khó: Trung bình - Khó. Hỏi về lý do chọn giải pháp (Why) hoặc cách xử lý (How).
+4. Ngôn ngữ: TẤT CẢ câu hỏi (content) và câu trả lời gợi ý (expected_answer) BẮT BUỘC phải viết bằng Tiếng Việt (Vietnamese).
+
+Định dạng trả về BẮT BUỘC (chỉ trả về JSON, không kèm thêm text/markdown khác):
+{
+  "data": [
+    {
+      "type": "Technical",
+      "content": "Nội dung câu hỏi phỏng vấn",
+      "expected_answer": "Ý chính cần thiết để đánh giá"
+    }
+  ]
+}
+
+--- Dữ liệu đầu vào ---
+Job Description:
+${jdText}
+
+CV Candidate:
+${cvText}`;
+
+        const payload = JSON.stringify({
+            model: this.model,
+            messages: [
+                { role: 'system', content: 'You are a helpful AI assistant that outputs only valid JSON.' },
+                { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' }
+        });
+
+        const result = await this._callAI(payload);
+
+        if (result && result.data && Array.isArray(result.data)) {
+            return result.data;
+        }
+
+        throw new Error('Invalid JSON format from AI response: Missing data array');
+    }
+
     async _callAI(payload) {
         return new Promise((resolve, reject) => {
             const url = new URL(this.apiUrl);
