@@ -21,6 +21,7 @@ const Notification = require('./Notification');
 const Conversation = require('./Conversation');
 const Message = require('./Message');
 const Transaction = require('./Transaction');
+const InterviewQuestion = require('./InterviewQuestion');
 
 // Define Associations
 
@@ -79,6 +80,10 @@ Resume.hasMany(Application, { foreignKey: 'resumesId', as: 'applications' });
 // Application - Interview (One-to-One)
 Application.hasOne(Interview, { foreignKey: 'applicationId', as: 'interview' });
 Interview.belongsTo(Application, { foreignKey: 'applicationId', as: 'application' });
+
+// Application - InterviewQuestion (One-to-Many)
+Application.hasMany(InterviewQuestion, { foreignKey: 'applicationId', as: 'interviewQuestions' });
+InterviewQuestion.belongsTo(Application, { foreignKey: 'applicationId', as: 'application' });
 
 // User - SavedJob - JobPost (Many-to-Many)
 User.belongsToMany(JobPost, { through: SavedJob, foreignKey: 'userId', otherKey: 'jobPostId', as: 'savedJobs' });
@@ -146,5 +151,6 @@ module.exports = {
     Notification,
     Conversation,
     Message,
-    Transaction
+    Transaction,
+    InterviewQuestion
 };
