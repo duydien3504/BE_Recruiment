@@ -58,6 +58,17 @@ const User = sequelize.define('User', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         field: 'is_deleted'
+    },
+    dateOfBirth: {
+        type: DataTypes.DATE,
+        field: 'date_of_birth'
+    },
+    gender: {
+        type: DataTypes.ENUM('male', 'female', 'other'),
+    },
+    lastLogin: {
+        type: DataTypes.DATE,
+        field: 'last_login'
     }
 }, {
     tableName: 'users',

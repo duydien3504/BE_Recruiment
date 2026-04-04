@@ -191,6 +191,27 @@ class CompanyService {
 
         return jobs;
     }
+    /**
+     * Xác thực công ty (Dành cho Admin)
+     * @param {string} companyId - Company ID
+     * @param {boolean} isVerified - Trạng thái xác thực
+     */
+    async verifyCompany(companyId) {
+        const company = await CompanyRepository.findById(companyId);
+        if (!company) {
+            const error = new Error("Không tìm thấy Cty.");
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        const newVerifiedStatus = !company.verified;
+        await CompanyRepository.update(companyId, { verified: newVerifiedStatus });
+        
+        return {
+            message: newVerifiedStatus ? "Đã cấp tích xanh!" : "Đã gỡ xác thực.",
+            verified: newVerifiedStatus
+        };
+    }
 }
 
 module.exports = new CompanyService();

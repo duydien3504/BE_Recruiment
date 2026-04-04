@@ -22,7 +22,7 @@ class ApplicationRepository extends BaseRepository {
                     attributes: ['resumesId', 'fileName', 'fileUrl']
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: [['applied_at', 'DESC']],
             ...options
         });
     }
@@ -55,7 +55,7 @@ class ApplicationRepository extends BaseRepository {
                     attributes: ['resumesId', 'fileName', 'fileUrl']
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: [['applied_at', 'DESC']],
             ...options
         });
     }
@@ -141,7 +141,7 @@ class ApplicationRepository extends BaseRepository {
                 // Fix: dùng tuple [db_column, js_alias] để Sequelize sinh đúng SQL
                 // khi explicit attributes + underscored model. 'createdAt' đơn thuần
                 // không được map tự động và gây lỗi "column does not exist".
-                ['created_at', 'createdAt']
+                ['applied_at', 'appliedAt']
             ],
             include: [
                 {
@@ -157,7 +157,7 @@ class ApplicationRepository extends BaseRepository {
                     ]
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: [['applied_at', 'DESC']],
             limit,
             offset
         });
@@ -194,7 +194,7 @@ class ApplicationRepository extends BaseRepository {
                 'applicationId',
                 'jobPostId',
                 'status',
-                ['created_at', 'createdAt']
+                ['applied_at', 'appliedAt']
             ],
             include: [
                 {
@@ -213,7 +213,7 @@ class ApplicationRepository extends BaseRepository {
                     include: [skillInclude]
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: [['applied_at', 'DESC']],
             limit,
             offset,
             distinct: true

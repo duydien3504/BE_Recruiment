@@ -36,10 +36,18 @@ const {
  *                 minLength: 8
  *               full_name:
  *                 type: string            
+ *               date_of_birth:
+ *                 type: string
+ *                 format: date
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
  *           example:
  *             email: "user@example.com"
  *             password: "Password123"
  *             full_name: "Nguyen Van A"
+ *             date_of_birth: "1990-01-01"
+ *             gender: "male"
  *     responses:
  *       201:
  *         description: Đăng ký thành công

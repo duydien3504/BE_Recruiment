@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const JobController = require('../controllers/JobController');
 const { optionalAuthenticateToken, authenticateToken } = require('../middleware/authMiddleware');
-const { validateUpdateJob, validateUpdateJobStatus } = require('../validators/jobValidator');
+const { validateCreateJob, validateUpdateJob, validateUpdateJobStatus } = require('../validators/jobValidator');
 
 /**
  * @swagger
@@ -38,6 +38,15 @@ const { validateUpdateJob, validateUpdateJobStatus } = require('../validators/jo
  *         name: location_id
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: job_type
+ *         schema:
+ *           type: string
+ *           enum: [fulltime, parttime, remote]
+ *       - in: query
+ *         name: experience_required
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Thành công
@@ -94,6 +103,14 @@ router.get('/', JobController.getJobs);
  *                 type: number
  *               salary_max:
  *                 type: number
+ *               job_type:
+ *                 type: string
+ *                 enum: [fulltime, parttime, remote]
+ *               experience_required:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *                 default: 1
  *     responses:
  *       201:
  *         description: Tạo thành công
@@ -120,7 +137,7 @@ router.get('/', JobController.getJobs);
  *                       type: number
  *                       example: 10000
  */
-router.post('/', authenticateToken, JobController.createJob);
+router.post('/', authenticateToken, validateCreateJob, JobController.createJob);
 
 /**
  * @swagger
@@ -224,6 +241,14 @@ router.get('/:id', optionalAuthenticateToken, JobController.getJobDetail);
  *                 type: number
  *               salary_max:
  *                 type: number
+ *               job_type:
+ *                 type: string
+ *                 enum: [fulltime, parttime, remote]
+ *               experience_required:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *                 default: 1
  *     responses:
  *       200:
  *         description: Cập nhật thành công

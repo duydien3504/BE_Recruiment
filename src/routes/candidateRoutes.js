@@ -42,7 +42,7 @@ const { ROLE_NAMES } = require('../constant/roles');
  *                       status:
  *                         type: string
  *                         enum: ['Pending', 'Viewed', 'Interview', 'Accepted', 'Rejected']
- *                       createdAt:
+ *                       appliedAt:
  *                         type: string
  *                         format: date-time
  *                       jobPost:

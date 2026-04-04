@@ -569,5 +569,36 @@ router.get('/stats/dashboard', authenticateToken, authorize(['Admin']), AdminCon
  */
 router.get('/stats/growth', authenticateToken, authorize(['Admin']), AdminController.getGrowthStats);
 
+/**
+ * @swagger
+ * /api/v1/admin/companies/{id}/verify:
+ *   patch:
+ *     summary: Xác thực công ty (Admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Đã cấp tích xanh!"
+ *                 verified:
+ *                   type: boolean
+ *                   example: true
+ */
+router.patch('/companies/:id/verify', authenticateToken, authorize(['Admin']), AdminController.verifyCompany);
+
 module.exports = router;
 

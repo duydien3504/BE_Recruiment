@@ -58,6 +58,10 @@ const Company = sequelize.define('Company', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         field: 'is_deleted'
+    },
+    verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
 }, {
     tableName: 'companies',

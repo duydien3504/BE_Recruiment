@@ -34,6 +34,10 @@ const Application = sequelize.define('Application', {
     employerNote: {
         type: DataTypes.TEXT,
         field: 'employer_note'
+    },
+    appliedAt: {
+        type: DataTypes.DATE,
+        field: 'applied_at'
     }
 }, {
     tableName: 'applications',

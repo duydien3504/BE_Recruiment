@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "jest --passWithNoTests",
-    "db:sync": "node src/scripts/syncDatabase.js"
+    "db:sync": "node src/scripts/syncDatabase.js",
+    "tunnel": "nport 8080 -s api-recruitment",
+    "dev:tunnel": "concurrently \"npm:dev\" \"npm:tunnel\""
   },
   "keywords": [],
   "author": "",
@@ -36,8 +38,10 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "jest": "^30.2.0",
     "nodemon": "^3.1.11",
+    "nport": "^2.1.4",
     "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2"
   }

@@ -104,6 +104,8 @@ describe('AuthService', () => {
                 password: 'hashedPassword123',
                 fullName: 'Nguyen Van A',
                 roleId: 3,
+                dateOfBirth: null,
+                gender: null,
                 status: 'Inactive'
             });
 
@@ -258,6 +260,9 @@ describe('AuthService', () => {
                 userId: 'uuid-123',
                 email: 'test@example.com',
                 roleId: 3
+            });
+            expect(UserRepository.update).toHaveBeenCalledWith('uuid-123', {
+                lastLogin: expect.any(Date)
             });
 
             expect(result).toEqual({

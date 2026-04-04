@@ -55,7 +55,8 @@ class ApplicationService {
             jobPostId,
             resumesId,
             coverLetter,
-            status: 'Pending'
+            status: 'Pending',
+            appliedAt: new Date()
         };
 
         const newApplication = await ApplicationRepository.create(applicationData);
@@ -132,7 +133,7 @@ class ApplicationService {
             companyName:   app.jobPost?.company ? app.jobPost.company.name : null,
             coverLetter:   app.coverLetter,
             status:        app.status,
-            appliedAt:     app.createdAt
+            appliedAt:     app.appliedAt
         }));
 
         const totalPages = Math.ceil(count / limit);
@@ -387,7 +388,7 @@ class ApplicationService {
             experienceYears: application.user?.experienceYears ?? 0,
             skills: (application.user?.skills || []).map((skill) => skill.name),
             status: application.status,
-            appliedAt: application.createdAt
+            appliedAt: application.appliedAt
         }));
 
         return {

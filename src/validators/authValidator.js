@@ -37,7 +37,11 @@ const registerSchema = Joi.object({
         .messages({
             'any.only': MESSAGES.INVALID_ROLE,
             'number.base': MESSAGES.INVALID_ROLE
-        })
+        }),
+    date_of_birth: Joi.date().iso().optional()
+        .messages({ 'date.format': 'Ngày sinh phải đúng định dạng ISO 8601 (YYYY-MM-DD)' }),
+    gender: Joi.string().valid('male', 'female', 'other').optional()
+        .messages({ 'any.only': 'Giới tính chỉ nhận male, female, hoặc other' })
 });
 
 const employerRegisterSchema = Joi.object({
@@ -86,7 +90,11 @@ const employerRegisterSchema = Joi.object({
         .optional()
         .messages({
             'string.pattern.base': MESSAGES.PHONE_INVALID
-        })
+        }),
+    date_of_birth: Joi.date().iso().optional()
+        .messages({ 'date.format': 'Ngày sinh phải đúng định dạng ISO 8601 (YYYY-MM-DD)' }),
+    gender: Joi.string().valid('male', 'female', 'other').optional()
+        .messages({ 'any.only': 'Giới tính chỉ nhận male, female, hoặc other' })
 });
 
 const validate = (schema, source = 'body') => {

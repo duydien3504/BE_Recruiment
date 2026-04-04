@@ -33,6 +33,25 @@ class AdminController {
             next(error);
         }
     }
+    /**
+     * Xác thực công ty
+     * @route PATCH /api/v1/admin/companies/:id/verify
+     */
+    async verifyCompany(req, res, next) {
+        try {
+            const { id } = req.params;
+            
+            const CompanyService = require('../services/CompanyService');
+            const result = await CompanyService.verifyCompany(id);
+
+            return res.status(HTTP_STATUS.OK).json({
+                message: result.message,
+                verified: result.verified
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new AdminController();

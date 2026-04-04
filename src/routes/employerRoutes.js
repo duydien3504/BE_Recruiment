@@ -33,6 +33,15 @@ const InterviewQuestionController = require('../controllers/InterviewQuestionCon
  *           type: string
  *           enum: [Active, Closed, Pending, Rejected, Draft]
  *         description: Lọc theo trạng thái
+ *       - in: query
+ *         name: job_type
+ *         schema:
+ *           type: string
+ *           enum: [fulltime, parttime, remote]
+ *       - in: query
+ *         name: experience_required
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: Thành công
@@ -139,6 +148,9 @@ router.get('/statistics', authenticateToken, authorize('Employer'), CompanyContr
  *                         type: integer
  *                       status:
  *                         type: string
+ *                       appliedAt:
+ *                         type: string
+ *                         format: date-time
  *                       user:
  *                         type: object
  *                         properties:
