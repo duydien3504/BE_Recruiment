@@ -44,7 +44,7 @@ class AuthService {
     }
 
     async register(registerData) {
-        const { email, password, full_name, role_id } = registerData;
+        const { email, password, full_name, role_id, date_of_birth, gender } = registerData;
 
         const existingUser = await UserRepository.findByEmail(email);
         if (existingUser) {
@@ -67,6 +67,8 @@ class AuthService {
             password: hashedPassword,
             fullName: full_name,
             roleId: role_id,
+            dateOfBirth: date_of_birth || null,
+            gender: gender || null,
             status: USER_STATUS_INACTIVE
         });
 
@@ -117,6 +119,8 @@ class AuthService {
             error.status = HTTP_STATUS.FORBIDDEN;
             throw error;
         }
+
+        await UserRepository.update(user.userId, { lastLogin: new Date() });
 
         const tokenPayload = {
             userId: user.userId,

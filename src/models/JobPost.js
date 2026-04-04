@@ -68,6 +68,19 @@ const JobPost = sequelize.define('JobPost', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         field: 'is_deleted'
+    },
+    jobType: {
+        type: DataTypes.ENUM('fulltime', 'parttime', 'remote'),
+        defaultValue: 'fulltime',
+        field: 'job_type'
+    },
+    experienceRequired: {
+        type: DataTypes.STRING(100),
+        field: 'experience_required'
+    },
+    quantity: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1
     }
 }, {
     tableName: 'job_posts',

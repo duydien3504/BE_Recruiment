@@ -1,6 +1,6 @@
 const BaseRepository = require('./BaseRepository');
 const { JobPost } = require('../models');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 class JobPostRepository extends BaseRepository {
     constructor() {
@@ -32,14 +32,37 @@ class JobPostRepository extends BaseRepository {
             status: 'Active' // Public search -> Active only
         };
 
+        const conditions = [];
+
         if (filters.keyword) {
-            where.title = { [Op.iLike]: `%${filters.keyword}%` };
+            // Using unaccent_immutable for accent-insensitive search and index hitting
+            conditions.push(
+                Sequelize.where(
+                    Sequelize.fn('unaccent_immutable', Sequelize.fn('lower', Sequelize.col('JobPost.title'))),
+                    { [Op.iLike]: Sequelize.fn('unaccent_immutable', `%${filters.keyword.toLowerCase()}%`) }
+                )
+            );
         }
         if (filters.categoryId) {
             where.categoryId = filters.categoryId;
         }
         if (filters.locationId) {
             where.locationId = filters.locationId;
+        }
+        if (filters.jobType) {
+            where.jobType = filters.jobType;
+        }
+        if (filters.experienceRequired) {
+            conditions.push(
+                Sequelize.where(
+                    Sequelize.fn('unaccent_immutable', Sequelize.fn('lower', Sequelize.col('JobPost.experience_required'))),
+                    { [Op.iLike]: Sequelize.fn('unaccent_immutable', `%${filters.experienceRequired.toLowerCase()}%`) }
+                )
+            );
+        }
+
+        if (conditions.length > 0) {
+            where[Op.and] = conditions;
         }
 
         return await this.findAndCountAll(where, {
@@ -98,10 +121,23 @@ class JobPostRepository extends BaseRepository {
 
     async getAllJobs(filters = {}, options = {}) {
         const where = { isDeleted: false };
+        const conditions = [];
 
         if (filters.status) where.status = filters.status;
         if (filters.companyId) where.companyId = filters.companyId;
-        if (filters.keyword) where.title = { [Op.iLike]: `%${filters.keyword}%` };
+
+        if (filters.keyword) {
+            conditions.push(
+                Sequelize.where(
+                    Sequelize.fn('unaccent_immutable', Sequelize.fn('lower', Sequelize.col('JobPost.title'))),
+                    { [Op.iLike]: Sequelize.fn('unaccent_immutable', `%${filters.keyword.toLowerCase()}%`) }
+                )
+            );
+        }
+
+        if (conditions.length > 0) {
+            where[Op.and] = conditions;
+        }
 
         return await this.findAndCountAll(where, {
             ...options,

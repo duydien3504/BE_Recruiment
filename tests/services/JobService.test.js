@@ -32,7 +32,7 @@ describe('JobService', () => {
                 count: 10,
                 rows: [{ id: 1, title: 'Java Developer' }]
             };
-            const query = { page: 1, limit: 10, keyword: 'Java', category_id: 1, location_id: 2 };
+            const query = { page: 1, limit: 10, keyword: 'Java', category_id: 1, location_id: 2, job_type: 'remote', experience_required: '1 year' };
 
             JobPostRepository.search.mockResolvedValue(mockData);
 
@@ -41,7 +41,9 @@ describe('JobService', () => {
             expect(JobPostRepository.search).toHaveBeenCalledWith({
                 keyword: 'Java',
                 categoryId: 1,
-                locationId: 2
+                locationId: 2,
+                jobType: 'remote',
+                experienceRequired: '1 year'
             }, {
                 limit: 10,
                 offset: 0
@@ -131,7 +133,10 @@ describe('JobService', () => {
                 title: 'Java Dev',
                 description: 'Test',
                 category_id: 1,
-                location_id: 2
+                location_id: 2,
+                job_type: 'remote',
+                experience_required: '2 years',
+                quantity: 5
             };
             const mockJob = { jobPostId: 1, status: 'Draft' };
             const mockTransaction = { transactionId: 100 };
@@ -145,7 +150,11 @@ describe('JobService', () => {
             const result = await JobService.createJob('user-uuid', jobData, '127.0.0.1');
 
             expect(CompanyRepository.findByUserId).toHaveBeenCalledWith('user-uuid');
-            expect(JobPostRepository.create).toHaveBeenCalled();
+            expect(JobPostRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+                jobType: 'remote',
+                experienceRequired: '2 years',
+                quantity: 5
+            }));
             expect(TransactionRepository.create).toHaveBeenCalled();
             expect(vnpayHelper.createPaymentUrl).toHaveBeenCalled();
             expect(result.job.status).toBe('Draft');

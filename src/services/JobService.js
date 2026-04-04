@@ -132,7 +132,7 @@ class JobService {
      * @returns {Object} { data, pagination }
      */
     async getJobs(query) {
-        const { keyword, category_id, location_id, page = 1, limit = 10 } = query;
+        const { keyword, category_id, location_id, job_type, experience_required, page = 1, limit = 10 } = query;
         const pageNum = parseInt(page) || 1;
         const limitNum = parseInt(limit) || 10;
         const offset = (pageNum - 1) * limitNum;
@@ -140,7 +140,9 @@ class JobService {
         const filters = {
             keyword,
             categoryId: category_id,
-            locationId: location_id
+            locationId: location_id,
+            jobType: job_type,
+            experienceRequired: experience_required
         };
 
         const { count, rows } = await JobPostRepository.search(filters, {
@@ -213,6 +215,9 @@ class JobService {
             title: jobData.title,
             description: jobData.description,
             requirements: jobData.requirements || '',
+            jobType: jobData.job_type || 'fulltime',
+            experienceRequired: jobData.experience_required || null,
+            quantity: jobData.quantity || 1,
             salaryMin: jobData.salary_min || null,
             salaryMax: jobData.salary_max || null,
             status: 'Draft', // Chờ thanh toán
@@ -281,6 +286,9 @@ class JobService {
         if (updateData.category_id) dataToUpdate.categoryId = updateData.category_id;
         if (updateData.location_id) dataToUpdate.locationId = updateData.location_id;
         if (updateData.level_id) dataToUpdate.levelId = updateData.level_id;
+        if (updateData.job_type) dataToUpdate.jobType = updateData.job_type;
+        if (updateData.experience_required !== undefined) dataToUpdate.experienceRequired = updateData.experience_required;
+        if (updateData.quantity !== undefined) dataToUpdate.quantity = updateData.quantity;
         if (updateData.salary_min !== undefined) dataToUpdate.salaryMin = updateData.salary_min;
         if (updateData.salary_max !== undefined) dataToUpdate.salaryMax = updateData.salary_max;
 
