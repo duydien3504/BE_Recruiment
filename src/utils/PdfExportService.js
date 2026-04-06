@@ -9,14 +9,15 @@ class PdfExportService {
      * @param {object} themeConfig 
      * @returns {Promise<Buffer>}
      */
-    async generatePdf(cvData, themeConfig) {
+    async generatePdf(cvData, themeConfig, columnLayout) {
         // Path to the EJS template
         const templatePath = path.join(__dirname, 'templates', 'cv_template.ejs');
         
         // Render HTML from EJS
         const htmlContent = await ejs.renderFile(templatePath, {
             cvData: cvData || {},
-            themeConfig: themeConfig || {}
+            themeConfig: themeConfig || {},
+            columnLayout: columnLayout || null
         });
 
         // Launch Puppeteer headless browser

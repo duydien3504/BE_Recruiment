@@ -62,6 +62,7 @@ class CvBuilderService {
             templateId: payload.templateId,
             themeConfig: payload.themeConfig,
             cvData: payload.cvData,
+            columnLayout: payload.columnLayout, // Save column layout
             atsScore: newAtsScore
         };
 
@@ -206,23 +207,32 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
     /**
      * Xuất bản CV nháp của User ra PDF Format
      * @param {string} userId 
+     * @param {object} payload - { cvData, themeConfig, templateId }
      * @returns {Promise<Buffer>}
      */
-    async exportCvDraft(userId) {
-        // Lấy record data chứa json tree
-        const cvBuilder = await CvBuilderRepository.findByUserId(userId);
-        
-        if (!cvBuilder) {
-            const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
-            error.status = HTTP_STATUS.NOT_FOUND;
-            throw error;
+    async exportCvDraft(userId, payload = {}) {
+        let cvData = payload.cvData;
+        let themeConfig = payload.themeConfig;
+        let columnLayout = payload.columnLayout;
+
+        // Nếu không truyền payload (VD: gọi trực tiếp từ link), lấy từ database
+        if (!cvData || !themeConfig || !columnLayout) {
+            const cvBuilder = await CvBuilderRepository.findByUserId(userId);
+            if (!cvBuilder) {
+                const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
+                error.status = HTTP_STATUS.NOT_FOUND;
+                throw error;
+            }
+            cvData = cvData || cvBuilder.cvData;
+            themeConfig = themeConfig || cvBuilder.themeConfig;
+            columnLayout = columnLayout || cvBuilder.columnLayout || { left: ['profile', 'contact', 'about', 'skills'], right: ['experience', 'education', 'projects'] };
         }
 
         const PdfExportService = require('../utils/PdfExportService');
         
         try {
             // Render map thông tin từ object vào ejs + puppeteer return buffer
-            const pdfBuffer = await PdfExportService.generatePdf(cvBuilder.cvData, cvBuilder.themeConfig);
+            const pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout);
             return pdfBuffer;
         } catch (error) {
             console.error('[Export CV Pipeline Error]:', error);

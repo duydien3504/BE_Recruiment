@@ -155,8 +155,9 @@ class CvBuilderController {
     async exportCvPdf(req, res, next) {
         try {
             const { userId } = req.user;
+            const payload = req.body;
             
-            const pdfBuffer = await CvBuilderService.exportCvDraft(userId);
+            const pdfBuffer = await CvBuilderService.exportCvDraft(userId, payload);
 
             // Ghi cấu hình Header yêu cầu browser tải về file chứ không phải parse json
             res.setHeader('Content-Type', 'application/pdf');
