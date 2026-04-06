@@ -1,7 +1,6 @@
 src/config/secret
 .env
 API_DESIGN_PLAN.md
-RULE.md
 node_modules
 docs
 diagram
@@ -19,3 +18,5 @@ CreateCV.md
 CreateCVEndpoint.md
 ExtendDB.md
 nginx
+
+RULE.md

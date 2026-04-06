@@ -22,6 +22,7 @@ const Conversation = require('./Conversation');
 const Message = require('./Message');
 const Transaction = require('./Transaction');
 const InterviewQuestion = require('./InterviewQuestion');
+const CvBuilder = require('./CvBuilder');
 
 // Define Associations
 
@@ -64,6 +65,10 @@ Skill.belongsToMany(User, { through: UserSkill, foreignKey: 'skillId', otherKey:
 // User - Resume (One-to-Many)
 User.hasMany(Resume, { foreignKey: 'userId', as: 'resumes' });
 Resume.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// User - CvBuilder (One-to-One)
+User.hasOne(CvBuilder, { foreignKey: 'userId', as: 'cvBuilder' });
+CvBuilder.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Application - JobPost (Many-to-One)
 Application.belongsTo(JobPost, { foreignKey: 'jobPostId', as: 'jobPost' });
@@ -152,5 +157,6 @@ module.exports = {
     Conversation,
     Message,
     Transaction,
-    InterviewQuestion
+    InterviewQuestion,
+    CvBuilder
 };

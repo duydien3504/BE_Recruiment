@@ -163,6 +163,20 @@ const MESSAGES = {
     LEVEL_NAME_EXISTS: 'Tên cấp độ đã tồn tại.',
     LEVEL_NAME_REQUIRED: 'Tên cấp độ là bắt buộc.',
 
+    // CvBuilder messages
+    GET_CV_BUILDER_SUCCESS: 'Lấy dữ liệu CV Builder thành công.',
+    UPDATE_CV_BUILDER_SUCCESS: 'Cập nhật bản nháp thành công.',
+    CV_BUILDER_NOT_FOUND: 'Không tìm thấy bản nháp CV.',
+    CVDATA_REQUIRED: 'Vui lòng cung cấp dữ liệu cvData.',
+    THEME_CONFIG_REQUIRED: 'Vui lòng cung cấp dữ liệu cấu hình giao diện (themeConfig).',
+    TEMPLATE_ID_REQUIRED: 'Vui lòng cung cấp ID mẫu CV (templateId).',
+    GET_TEMPLATES_SUCCESS: 'Lấy danh sách template thành công.',
+    AI_SUGGESTION_SUCCESS: 'Tạo nội dung AI thành công.',
+    AI_SUGGESTION_PAYLOAD_INVALID: 'Thiếu thông tin industry hoặc section.',
+    AI_SUGGESTION_TIMEOUT: 'Hệ thống AI đang bận hoặc phản hồi chậm. Vui lòng thử lại sau.',
+    ATS_CHECK_SUCCESS: 'Kiểm tra ATS hoàn tất.',
+    ATS_PAYLOAD_INVALID: 'Thiếu nội dung CV hoặc Mô tả công việc (JD).',
+
     // Server errors
     INTERNAL_SERVER_ERROR: 'Lỗi server nội bộ.'
 };

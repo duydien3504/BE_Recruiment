@@ -19,6 +19,7 @@ const MessageRepository = require('./MessageRepository');
 const TransactionRepository = require('./TransactionRepository');
 const LevelRepository = require('./LevelRepository');
 const InterviewQuestionRepository = require('./InterviewQuestionRepository');
+const CvBuilderRepository = require('./CvBuilderRepository');
 
 module.exports = {
     RoleRepository,
@@ -41,5 +42,6 @@ module.exports = {
     MessageRepository,
     TransactionRepository,
     LevelRepository,
-    InterviewQuestionRepository
+    InterviewQuestionRepository,
+    CvBuilderRepository
 };

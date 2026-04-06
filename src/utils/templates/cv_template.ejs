@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Export</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: <%= themeConfig.fontFamily || 'Arial, sans-serif' %>;
+            color: #333;
+            margin: 0;
+            padding: 40px;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid <%= themeConfig.primaryColor || '#000' %>;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: <%= themeConfig.primaryColor || '#000' %>;
+            margin: 0 0 10px 0;
+            font-size: 2.5rem;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+        .section-title {
+            color: <%= themeConfig.primaryColor || '#000' %>;
+            font-size: 1.5rem;
+            margin-top: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        .content {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        .skills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .skill-badge {
+            background-color: #f4f4f4;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><%= cvData.personal?.fullName || 'Tên Ứng Viên' %></h1>
+        <p>
+            <%= cvData.personal?.email || 'email@example.com' %> | 
+            <%= cvData.personal?.phoneNumber || 'SĐT' %> | 
+            <%= cvData.personal?.address || 'Địa chỉ' %>
+        </p>
+    </div>
+
+    <div class="content">
+        <h2 class="section-title">Giới Thiệu (Summary)</h2>
+        <p><%= cvData.about || 'Một đoạn giới thiệu ngắn về bản thân.' %></p>
+    </div>
+
+    <div class="content">
+        <h2 class="section-title">Kỹ Năng (Skills)</h2>
+        <div class="skills-container">
+            <% if (typeof cvData.skills === 'string') { %>
+                <div class="raw-html-skills"><%- cvData.skills %></div>
+            <% } else if (cvData.skills && cvData.skills.length > 0) { %>
+                <% cvData.skills.forEach(function(skill) { %>
+                    <span class="skill-badge"><%= skill.name || skill %></span>
+                <% }); %>
+            <% } else { %>
+                <p>Chưa có kỹ năng nào được bổ sung.</p>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Render Kinh Nghiệm -->
+    <% if (cvData.experience && cvData.experience.length > 0) { %>
+    <div class="content">
+        <h2 class="section-title">Kinh Nghiệm Làm Việc</h2>
+        <% cvData.experience.forEach(function(exp) { %>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <h3 style="margin: 0;"><%= exp.company || '' %></h3>
+                    <span style="color: #666; font-size: 0.9em;"><%= exp.period || '' %></span>
+                </div>
+                <div style="font-style: italic; color: #555; margin-bottom: 5px;"><%= exp.title || '' %></div>
+                <div style="font-size: 0.95em;"><%- exp.description || '' %></div>
+            </div>
+        <% }); %>
+    </div>
+    <% } %>
+
+    <!-- Render Học Vấn -->
+    <% if (cvData.education && cvData.education.length > 0) { %>
+    <div class="content">
+        <h2 class="section-title">Học Vấn</h2>
+        <% cvData.education.forEach(function(edu) { %>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                    <h3 style="margin: 0;"><%= edu.school || '' %></h3>
+                    <span style="color: #666; font-size: 0.9em;"><%= edu.period || '' %></span>
+                </div>
+                <div style="font-style: italic; color: #555; margin-bottom: 5px;"><%= edu.degree || '' %></div>
+                <div style="font-size: 0.95em;"><%- edu.description || '' %></div>
+            </div>
+        <% }); %>
+    </div>
+    <% } %>
+
+    
+    <!-- Render Kinh nghiệm, Học vấn v.v... ở đây nếu JSON cvData định nghĩa cụ thể array -->
+</body>
+</html>
