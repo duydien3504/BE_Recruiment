@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV StitchRecruit - Minimal Corporate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+
+        body {
+            font-family: '<%=themeConfig.fontFamily || "Lato"%>', sans-serif;
+            margin: 0; padding: 0; background: #fff; color: #2c2c2c;
+            line-height: <%=themeConfig.lineSpacing || 1.5%>;
+            letter-spacing: <%=themeConfig.charSpacing || 0%>px;
+        }
+
+        .cv-container { display: flex; min-height: 297mm; width: 210mm; margin: 0 auto; }
+
+        /* ===================== SIDEBAR ===================== */
+        .sidebar { width: 62mm; padding: 35px 18px 35px 20px; background: #f5f5f5; flex-shrink: 0; border-right: 1px solid #e0e0e0; }
+
+        .sb-section { margin-bottom: 24px; }
+        .sb-section-title {
+            font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.8px;
+            color: #222; border-bottom: 2px solid <%=themeConfig.primaryColor || '#3F51B5'%>;
+            padding-bottom: 5px; margin-bottom: 12px;
+        }
+
+        /* Contact items */
+        .contact-item { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 9px; }
+        .contact-icon { color: <%=themeConfig.primaryColor || '#3F51B5'%>; flex-shrink: 0; margin-top: 1px; }
+        .contact-text { font-size: 9px; color: #444; line-height: 1.4; word-break: break-all; }
+
+        /* Skills / text in sidebar */
+        .sb-text { font-size: 9.5px; color: #444; line-height: 1.6; }
+        .sb-text p { margin: 0 0 4px; }
+        .sb-text ul { padding-left: 14px; margin: 0; list-style: disc; }
+        .sb-text li { margin-bottom: 4px; }
+
+        /* ===================== MAIN ===================== */
+        .main-content { flex: 1; padding: 35px 30px; }
+
+        /* Header: Name + Title */
+        .header-zone { margin-bottom: 18px; }
+        .header-name {
+            font-size: 30px; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 1px; color: #111; line-height: 1.1; margin-bottom: 4px;
+        }
+        .header-title { font-size: 12px; font-weight: 400; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+        .header-divider { height: 2px; background: <%=themeConfig.primaryColor || '#3F51B5'%>; margin-top: 12px; }
+
+        /* Sections */
+        .main-section { margin-bottom: 24px; margin-top: 20px; }
+        .main-section-title {
+            font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+            color: #111; border-bottom: 1.5px solid #ddd;
+            padding-bottom: 5px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+        }
+        .main-section-title::before {
+            content: '';
+            width: 14px; height: 14px; border-radius: 50%;
+            background: <%=themeConfig.primaryColor || '#3F51B5'%>;
+            display: inline-block; flex-shrink: 0;
+        }
+
+        /* Timeline items (main) */
+        .tl-wrap { display: flex; gap: 14px; margin-bottom: 18px; position: relative; }
+        .tl-line-col { display: flex; flex-direction: column; align-items: center; }
+        .tl-circle {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 2px solid <%=themeConfig.primaryColor || '#3F51B5'%>;
+            background: #fff; margin-top: 4px; flex-shrink: 0;
+        }
+        .tl-vline { width: 1px; background: #ddd; flex: 1; margin-top: 4px; }
+        .tl-content { flex: 1; }
+        .tl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+        .tl-name { font-size: 12px; font-weight: 700; color: #1a1a1a; }
+        .tl-period { font-size: 9px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tl-subtitle { font-size: 10px; color: #666; font-style: italic; margin-bottom: 6px; }
+        .tl-desc { font-size: 9.5px; color: #444; line-height: 1.6; }
+        .tl-desc p { margin: 0 0 3px; }
+        .tl-desc ul { padding-left: 14px; margin: 3px 0; }
+        .tl-desc li { margin-bottom: 2px; }
+
+        /* About in main */
+        .about-block { font-size: 10.5px; color: #444; line-height: 1.7; text-align: justify; }
+        .about-block p { margin: 0 0 6px; }
+
+        .prose ul { padding-left: 1.2rem; margin: 0.3rem 0; }
+        .prose li { margin-bottom: 2px; }
+        .prose p { margin: 0 0 4px; }
+    </style>
+</head>
+<body>
+<%
+const layout = columnLayout || { left: ['contact','skills'], right: ['about','experience','education','projects'] };
+const LABELS = {
+    contact:'Contact', about:'Profile', skills:'Skills',
+    experience:'Work Experience', education:'Education', projects:'Projects', awards:'Awards'
+};
+%>
+<div class="cv-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <% layout.left.forEach(function(sectionId) { %>
+            <% if (sectionId === 'profile' || sectionId === 'contact') { %>
+                <div class="sb-section">
+                    <div class="sb-section-title">Contact</div>
+                    <% if (cvData.personal) { %>
+                        <% if (cvData.personal.phoneNumber) { %>
+                            <div class="contact-item">
+                                <div class="contact-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+                                <div class="contact-text"><%=cvData.personal.phoneNumber%></div>
+                            </div>
+                        <% } %>
+                        <% if (cvData.personal.email) { %>
+                            <div class="contact-item">
+                                <div class="contact-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+                                <div class="contact-text"><%=cvData.personal.email%></div>
+                            </div>
+                        <% } %>
+                        <% if (cvData.personal.address) { %>
+                            <div class="contact-item">
+                                <div class="contact-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                                <div class="contact-text"><%=cvData.personal.address%></div>
+                            </div>
+                        <% } %>
+                    <% } %>
+                </div>
+            <% } else if (sectionId === 'about') { %>
+                <!-- about in sidebar for this template -->
+                <div class="sb-section">
+                    <div class="sb-section-title">Profile</div>
+                    <div class="sb-text"><%- cvData.about || '' %></div>
+                </div>
+            <% } else if (sectionId === 'skills') { %>
+                <div class="sb-section">
+                    <div class="sb-section-title">Skills</div>
+                    <div class="sb-text"><%- cvData.skills || '' %></div>
+                </div>
+            <% } else { %>
+                <% const sbItems = cvData[sectionId] || []; %>
+                <% if (sbItems.length > 0) { %>
+                    <div class="sb-section">
+                        <div class="sb-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
+                        <div class="sb-text">
+                        <% sbItems.forEach(function(item) { %>
+                            <div style="margin-bottom:10px;">
+                                <div style="font-weight:700;font-size:10px;color:#222;"><%- item.school || item.company || item.name %></div>
+                                <div style="font-size:9px;color:<%=themeConfig.primaryColor || '#3F51B5'%>;"><%- item.degree || item.title || '' %></div>
+                                <div style="font-size:8.5px;color:#888;"><%- item.period || '' %></div>
+                            </div>
+                        <% }); %>
+                        </div>
+                    </div>
+                <% } %>
+            <% } %>
+        <% }); %>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header-zone">
+            <div class="header-name"><%- (cvData.personal && cvData.personal.fullName) || 'HỌ VÀ TÊN' %></div>
+            <div class="header-title"><%- (cvData.personal && cvData.personal.title) || 'Vị trí ứng tuyển' %></div>
+            <div class="header-divider"></div>
+        </div>
+
+        <% layout.right.forEach(function(sectionId) { %>
+            <% if (sectionId === 'about') { %>
+                <div class="main-section">
+                    <div class="main-section-title">Profile</div>
+                    <div class="about-block prose"><%- cvData.about || '' %></div>
+                </div>
+            <% } else if (sectionId === 'skills') { %>
+                <div class="main-section">
+                    <div class="main-section-title">Skills</div>
+                    <div class="about-block prose"><%- cvData.skills || '' %></div>
+                </div>
+            <% } else { %>
+                <% const items = cvData[sectionId] || []; %>
+                <% if (items.length > 0) { %>
+                    <div class="main-section">
+                        <div class="main-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
+                        <% items.forEach(function(item, idx) { %>
+                            <div class="tl-wrap">
+                                <div class="tl-line-col">
+                                    <div class="tl-circle"></div>
+                                    <% if (idx < items.length - 1) { %><div class="tl-vline"></div><% } %>
+                                </div>
+                                <div class="tl-content">
+                                    <div class="tl-head">
+                                        <div class="tl-name"><%- item.school || item.company || item.name %></div>
+                                        <div class="tl-period"><%- item.period || '' %></div>
+                                    </div>
+                                    <div class="tl-subtitle"><%- item.degree || item.title || '' %></div>
+                                    <div class="tl-desc prose"><%- item.description || '' %></div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+            <% } %>
+        <% }); %>
+    </div>
+</div>
+</body>
+</html>

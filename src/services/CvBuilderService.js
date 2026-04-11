@@ -1,4 +1,4 @@
-const { CvBuilderRepository, UserRepository } = require('../repositories');
+const { CvBuilderRepository, UserRepository, CvTemplateRepository } = require('../repositories');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 
@@ -53,6 +53,16 @@ class CvBuilderService {
             throw error;
         }
 
+        // Validate templateId gửi lên có tồn tại trong DB không
+        if (payload.templateId) {
+            const template = await CvTemplateRepository.findActiveById(payload.templateId);
+            if (!template) {
+                const error = new Error('Template không tồn tại hoặc đã bị vô hiệu hóa.');
+                error.status = HTTP_STATUS.BAD_REQUEST;
+                throw error;
+            }
+        }
+
         // Chấm điểm O(n) dựa trên Object Node
         const AtsScorer = require('../utils/AtsScorer');
         const newAtsScore = AtsScorer.calculateScore(payload.cvData);
@@ -98,23 +108,15 @@ class CvBuilderService {
     }
 
     /**
-     * Lấy danh sách template (có hỗ trợ filter)
-     * Thao tác O(n) scan trên mảng hằng số (bộ nhớ trong).
-     * @param {string} industry 
+     * Lấy danh sách template từ Database (thay thế file Constant cũ).
+     * Hỗ trợ filter theo category (ngành nghề).
+     * Complexity: O(n) với n = số template active.
+     * @param {string|null} category
      * @returns {Promise<Array>}
      */
-    async getTemplates(industry) {
-        const CV_TEMPLATES = require('../constant/templates');
-        
-        if (!industry) {
-            return CV_TEMPLATES;
-        }
-
-        const filtered = CV_TEMPLATES.filter(
-            (template) => template.category.toLowerCase() === industry.toLowerCase()
-        );
-
-        return filtered;
+    async getTemplates(category = null) {
+        const templates = await CvTemplateRepository.findAllActive(category);
+        return templates;
     }
 
     /**
@@ -205,6 +207,39 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
     }
 
     /**
+     * Xuất HTML xem trước của CV
+     * @param {string} userId 
+     * @param {object} payload 
+     * @returns {Promise<string>}
+     */
+    async getPreviewHtml(userId, payload = {}) {
+        let { cvData, themeConfig, columnLayout, templateId } = payload;
+
+        const cvBuilder = await CvBuilderRepository.findByUserId(userId);
+        if (!cvBuilder) {
+            const error = new Error('Không tìm thấy bản CV đang soạn.');
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        cvData = cvData || cvBuilder.cvData;
+        themeConfig = themeConfig || cvBuilder.themeConfig;
+        columnLayout = columnLayout || cvBuilder.columnLayout;
+        templateId = templateId || cvBuilder.templateId;
+
+        let ejsPath = null;
+        if (templateId) {
+            const template = await CvTemplateRepository.findActiveById(templateId);
+            if (template && template.ejsPath) {
+                ejsPath = template.ejsPath;
+            }
+        }
+
+        const PdfExportService = require('../utils/PdfExportService');
+        return await PdfExportService.renderHtml(cvData, themeConfig, columnLayout, ejsPath);
+    }
+
+    /**
      * Xuất bản CV nháp của User ra PDF Format
      * @param {string} userId 
      * @param {object} payload - { cvData, themeConfig, templateId }
@@ -214,25 +249,41 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
         let cvData = payload.cvData;
         let themeConfig = payload.themeConfig;
         let columnLayout = payload.columnLayout;
+        let templateId;
 
-        // Nếu không truyền payload (VD: gọi trực tiếp từ link), lấy từ database
-        if (!cvData || !themeConfig || !columnLayout) {
-            const cvBuilder = await CvBuilderRepository.findByUserId(userId);
-            if (!cvBuilder) {
-                const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
-                error.status = HTTP_STATUS.NOT_FOUND;
-                throw error;
+        // Luôn lấy bản nháp từ DB để có templateId chính xác nhất
+        const cvBuilder = await CvBuilderRepository.findByUserId(userId);
+        if (!cvBuilder) {
+            const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
+            error.status = HTTP_STATUS.NOT_FOUND;
+            throw error;
+        }
+
+        // Ưu tiên dùng data từ payload (bản nháp mới nhất FE vừa gửi) nếu có,
+        // fallback về data đã lưu trong DB.
+        cvData = cvData || cvBuilder.cvData;
+        themeConfig = themeConfig || cvBuilder.themeConfig;
+        columnLayout = columnLayout || cvBuilder.columnLayout || {
+            left: ['profile', 'contact', 'about', 'skills'],
+            right: ['experience', 'education', 'projects']
+        };
+        templateId = payload.templateId || cvBuilder.templateId;
+
+        // Tra cứu đường dẫn file EJS từ bảng cv_templates theo templateId
+        // Đây là bước then chốt để render đúng mẫu CV người dùng đang chọn.
+        let ejsPath = null;
+        if (templateId) {
+            const template = await CvTemplateRepository.findActiveById(templateId);
+            if (template && template.ejsPath) {
+                ejsPath = template.ejsPath;
             }
-            cvData = cvData || cvBuilder.cvData;
-            themeConfig = themeConfig || cvBuilder.themeConfig;
-            columnLayout = columnLayout || cvBuilder.columnLayout || { left: ['profile', 'contact', 'about', 'skills'], right: ['experience', 'education', 'projects'] };
         }
 
         const PdfExportService = require('../utils/PdfExportService');
-        
+
         try {
-            // Render map thông tin từ object vào ejs + puppeteer return buffer
-            const pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout);
+            // Truyền ejsPath động vào PdfExportService
+            const pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout, ejsPath);
             return pdfBuffer;
         } catch (error) {
             console.error('[Export CV Pipeline Error]:', error);

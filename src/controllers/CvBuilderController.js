@@ -74,9 +74,9 @@ class CvBuilderController {
      */
     async getTemplates(req, res, next) {
         try {
-            const { industry } = req.query;
+            const { category } = req.query;
 
-            const data = await CvBuilderService.getTemplates(industry);
+            const data = await CvBuilderService.getTemplates(category);
 
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
@@ -143,6 +143,24 @@ class CvBuilderController {
             } else {
                 error.status = error.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
             }
+            next(error);
+        }
+    }
+
+    /**
+     * Lấy HTML xem trước của CV
+     * @route POST /api/v1/cv-builder/preview
+     * @access Candidate only
+     */
+    async getPreview(req, res, next) {
+        try {
+            const { userId } = req.user;
+            const payload = req.body;
+
+            const html = await CvBuilderService.getPreviewHtml(userId, payload);
+
+            return res.status(HTTP_STATUS.OK).send(html);
+        } catch (error) {
             next(error);
         }
     }

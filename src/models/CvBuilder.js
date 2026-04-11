@@ -12,10 +12,10 @@ const CvBuilder = sequelize.define('CvBuilder', {
     allowNull: false,
     field: 'user_id'
   },
-  templateId: { // Ví dụ: 'modern_01', 'classical_02'
-    type: DataTypes.STRING,
+  templateId: { // FK trỏ vào bảng cv_templates. Default là mẫu IT cơ bản.
+    type: DataTypes.STRING(50),
     allowNull: false,
-    defaultValue: 'default_template',
+    defaultValue: 'modern_it_01',
     field: 'template_id'
   },
   themeConfig: {

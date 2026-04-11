@@ -23,6 +23,7 @@ const Message = require('./Message');
 const Transaction = require('./Transaction');
 const InterviewQuestion = require('./InterviewQuestion');
 const CvBuilder = require('./CvBuilder');
+const CvTemplate = require('./CvTemplate');
 
 // Define Associations
 
@@ -69,6 +70,11 @@ Resume.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 // User - CvBuilder (One-to-One)
 User.hasOne(CvBuilder, { foreignKey: 'userId', as: 'cvBuilder' });
 CvBuilder.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// CvTemplate - CvBuilder (One-to-Many)
+// Một template có thể được nhiều user dùng (nhiều bản nháp)
+CvTemplate.hasMany(CvBuilder, { foreignKey: 'templateId', as: 'cvBuilders' });
+CvBuilder.belongsTo(CvTemplate, { foreignKey: 'templateId', as: 'template' });
 
 // Application - JobPost (Many-to-One)
 Application.belongsTo(JobPost, { foreignKey: 'jobPostId', as: 'jobPost' });
@@ -158,5 +164,6 @@ module.exports = {
     Message,
     Transaction,
     InterviewQuestion,
-    CvBuilder
+    CvBuilder,
+    CvTemplate
 };

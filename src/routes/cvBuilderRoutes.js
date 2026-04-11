@@ -34,6 +34,13 @@ const cvBuilderValidator = require('../validators/cvBuilderValidator');
  *         description: Không đủ bộ nhớ RAM cho ứng dụng Puppeteer để headless Export.
  */
 router.post(
+    '/preview',
+    authenticateToken,
+    authorize(['Candidate']),
+    CvBuilderController.getPreview
+);
+
+router.post(
     '/export',
     authenticateToken,
     authorize(['Candidate']),
