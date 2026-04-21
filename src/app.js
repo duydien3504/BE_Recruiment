@@ -5,6 +5,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const { connectDB } = require('./config/database');
 
+const path = require('path');
+
 // Initialize app
 const app = express();
 
@@ -13,6 +15,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev')); // Logging request
+
+// Serve static files (thumbnails, assets) from /src/public folder
+// Access: http://localhost:PORT/static/thumbnails/thumb_xxx.png
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Swagger UI Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -68,6 +74,9 @@ app.use('/api/v1/skills', skillRoutes);
 
 const levelRoutes = require('./routes/levelRoutes');
 app.use('/api/v1/levels', levelRoutes);
+
+const cvBuilderRoutes = require('./routes/cvBuilderRoutes');
+app.use('/api/v1/cv-builder', cvBuilderRoutes);
 
 // Base Route
 app.get('/', (req, res) => {
