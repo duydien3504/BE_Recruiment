@@ -10,6 +10,9 @@ const path = require('path');
 // Initialize app
 const app = express();
 
+// Trust proxy for Railway/Cloud environments
+app.set('trust proxy', 1);
+
 // Middlewares
 app.use(cors());
 app.use(express.json());

@@ -12,11 +12,17 @@ const options = {
         },
         servers: [
             {
-                url: process.env.NODE_ENV === 'production'
-                    ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'be-recruitment.onrender.com'}`
-                    : `http://localhost:${process.env.PORT || 8080}`,
-                description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+                url: '/',
+                description: 'Mặc định (Relative path)',
             },
+            {
+                url: process.env.APP_URL || `https://be-recruitment-api-production.up.railway.app`,
+                description: 'Production'
+            },
+            {
+                url: `http://localhost:${process.env.PORT || 8080}`,
+                description: 'Local Development'
+            }
         ],
         components: {
             securitySchemes: {
