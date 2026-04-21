@@ -1,99 +1,97 @@
-# Multi-stage build for optimized production image
-FROM node:20-alpine AS base
+# Stage 1: Build dependencies
+# Sử dụng node:20-slim (Debian) thay vì Alpine để đảm bảo tương thích tốt nhất với Puppeteer và các thư viện native
+FROM node:20-slim AS builder
 
-# Install dependencies for native modules
-RUN apk add --no-cache \
+WORKDIR /app
+
+# Cài đặt build tools cho các module native như bcrypt
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev
-
-WORKDIR /app
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
 
-# ===================================
-# Development stage
-# ===================================
-FROM base AS development
+# Cài đặt production dependencies (npm ci giúp cài đúng version đồng bộ từ package-lock.json)
+RUN npm ci --only=production
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
 
-# Copy source code
-COPY . .
+# Stage 2: Production image
+FROM node:20-slim
 
-# Expose port
-EXPOSE 8080
+# Thiết lập Timezone (tùy chọn, hữu ích cho logs)
+ENV TZ=Asia/Ho_Chi_Minh
 
-# Start development server
-CMD ["npm", "run", "dev"]
+# Cài đặt các thư viện hệ thống cần thiết cho Puppeteer (Chromium) và Tini (xử lý tín hiệu boot)
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    lsb-release \
+    xdg-utils \
+    tini \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
-# ===================================
-# Build stage
-# ===================================
-FROM base AS build
-
-# Install all dependencies for building
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Run any build steps if needed (e.g., TypeScript compilation)
-# RUN npm run build
-
-# ===================================
-# Production stage
-# ===================================
-FROM node:20-alpine AS production
-
-# Install production dependencies only
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    dumb-init
-
-# Create app directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy node_modules và package files từ builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Copy mã nguồn ứng dụng (trừ các file trong .dockerignore)
+# Note: DataTest/seedData.js và src/utils/templates/... sẽ được copy qua bước này
+COPY . .
 
-# Copy source code from build stage
-COPY --from=build /app/src ./src
-COPY --from=build /app/scripts ./scripts
+# Biến môi trường quan trọng cho Railway và Puppeteer
+ENV NODE_ENV=production
+ENV PORT=8080
+# Ngăn Puppeteer tải Chromium khi chạy (nó đã được cài đặt qua npm install ở stage 1)
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
-
-# Expose port
+# Expose port (Railway sẽ dùng biến PORT này)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# Bảo mật: Chạy dưới quyền user node thay vì root
+RUN chown -R node:node /app
+USER node
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+# Sử dụng tini để forward các tín hiệu SIGTERM/SIGINT giúp container tắt an toàn
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Start production server
+# Khởi chạy server
 CMD ["node", "src/server.js"]
