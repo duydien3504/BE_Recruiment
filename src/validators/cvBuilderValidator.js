@@ -24,7 +24,10 @@ const cvBuilderSchemas = {
             .messages({
                 'object.base': MESSAGES.CVDATA_REQUIRED,
                 'any.required': MESSAGES.CVDATA_REQUIRED
-            })
+            }),
+
+        // columnLayout là optional — FE gửi kèm để lưu cấu trúc cột 1/2 cột
+        columnLayout: Joi.object().optional()
     }),
     aiSuggest: Joi.object({
         industry: Joi.string().trim().required().messages({

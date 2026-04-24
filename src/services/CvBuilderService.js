@@ -45,11 +45,18 @@ class CvBuilderService {
      * @returns {Promise<object>} - { newAtsScore, id }
      */
     async updateCvDraft(userId, payload) {
-        // Validation xem User có bản nháp chưa (nếu chưa, flow chuẩn sẽ báo 404, theo yêu cầu)
-        const cvBuilder = await CvBuilderRepository.findByUserId(userId);
+        // Upsert pattern: nếu user chưa có draft thì tạo mặc định trước, rồi update
+        let cvBuilder = await CvBuilderRepository.findByUserId(userId);
+        console.log('[CvBuilderService] findByUserId result:', cvBuilder ? `Found id=${cvBuilder.id}` : 'NOT FOUND');
+
         if (!cvBuilder) {
-            const error = new Error(MESSAGES.CV_BUILDER_NOT_FOUND);
-            error.status = HTTP_STATUS.NOT_FOUND;
+            cvBuilder = await CvBuilderRepository.createDefault(userId);
+            console.log('[CvBuilderService] createDefault result:', cvBuilder ? `Created id=${cvBuilder.id}` : 'CREATE FAILED');
+        }
+
+        if (!cvBuilder || !cvBuilder.id) {
+            const error = new Error('Không thể khởi tạo bản nháp CV.');
+            error.status = 500;
             throw error;
         }
 
@@ -67,15 +74,15 @@ class CvBuilderService {
         const AtsScorer = require('../utils/AtsScorer');
         const newAtsScore = AtsScorer.calculateScore(payload.cvData);
 
-        // Map data để update đè
+        // Map data để update đè — bỏ columnLayout vì không có trong DB schema
         const updateData = {
             templateId: payload.templateId,
             themeConfig: payload.themeConfig,
             cvData: payload.cvData,
-            columnLayout: payload.columnLayout, // Save column layout
             atsScore: newAtsScore
         };
 
+        console.log('[CvBuilderService] Updating draft id:', cvBuilder.id);
         await CvBuilderRepository.updateDraft(cvBuilder.id, updateData);
 
         return { newAtsScore };
