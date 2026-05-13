@@ -32,17 +32,19 @@ class CvBuilderService {
             templateId: cvBuilder.templateId,
             themeConfig: cvBuilder.themeConfig,
             cvData: cvBuilder.cvData,
-            atsScore: cvBuilder.atsScore
+            atsScore: cvBuilder.atsScore,
+            version: cvBuilder.version
         };
     }
 
     /**
      * Cập nhật bản nháp CV: Kích hoạt AtsScorer.calculateScore() lên cvData,
      * và update record dựa theo ID của user.
+     * Sử dụng Optimistic Locking (version) để chống chồng lấn dữ liệu.
      * Complexity: O(n) cho việc scan cvData + O(1) query Indexed FK
      * @param {string} userId 
-     * @param {object} payload - { cvData, themeConfig, templateId }
-     * @returns {Promise<object>} - { newAtsScore, id }
+     * @param {object} payload - { cvData, themeConfig, templateId, version }
+     * @returns {Promise<object>} - { newAtsScore, newVersion }
      */
     async updateCvDraft(userId, payload) {
         // Upsert pattern: nếu user chưa có draft thì tạo mặc định trước, rồi update
@@ -74,18 +76,52 @@ class CvBuilderService {
         const AtsScorer = require('../utils/AtsScorer');
         const newAtsScore = AtsScorer.calculateScore(payload.cvData);
 
-        // Map data để update đè — bỏ columnLayout vì không có trong DB schema
+        // Gom toàn bộ data vào cvData để đảm bảo không rớt mục nào (học vấn, kinh nghiệm, dự án...)
+        // Dù frontend gửi các mục ở top-level hay bên trong cvData thì đều gộp chung lại
+        const rawCvData = { ...payload };
+        delete rawCvData.templateId;
+        delete rawCvData.themeConfig;
+        delete rawCvData.columnLayout;
+        delete rawCvData.version;
+        delete rawCvData.cvData;
+
+        const finalCvData = {
+            ...cvBuilder.cvData,      // Giữ lại dữ liệu hiện tại trong DB
+            ...rawCvData,             // Ghi đè các trường top-level mới
+            ...(payload.cvData || {}) // Ghi đè các trường trong object cvData
+        };
+
+        // Map data để update đè — đảm bảo lưu columnLayout
         const updateData = {
             templateId: payload.templateId,
             themeConfig: payload.themeConfig,
-            cvData: payload.cvData,
+            columnLayout: payload.columnLayout,
+            cvData: finalCvData,
             atsScore: newAtsScore
         };
 
         console.log('[CvBuilderService] Updating draft id:', cvBuilder.id);
-        await CvBuilderRepository.updateDraft(cvBuilder.id, updateData);
 
-        return { newAtsScore };
+        // ── Optimistic Locking: kiểm tra version trước khi cập nhật ──
+        // Nếu client gửi lên version → dùng updateDraftWithVersion để kiểm tra xung đột
+        if (payload.version !== undefined && payload.version !== null) {
+            const updated = await CvBuilderRepository.updateDraftWithVersion(
+                cvBuilder.id, updateData, payload.version
+            );
+
+            if (!updated) {
+                const error = new Error(MESSAGES.CV_BUILDER_VERSION_CONFLICT);
+                error.status = HTTP_STATUS.CONFLICT;
+                throw error;
+            }
+
+            return { newAtsScore, newVersion: updated.version };
+        }
+
+        // Fallback: client không gửi version → backward-compatible (Last Write Wins)
+        const updatedFallback = await CvBuilderRepository.updateDraft(cvBuilder.id, updateData);
+
+        return { newAtsScore, newVersion: updatedFallback.version };
     }
     /**
      * Auto-fill profile data for CV
@@ -247,18 +283,16 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
     }
 
     /**
-     * Xuất bản CV nháp của User ra PDF Format
+     * Xuất bản CV nháp của User ra PDF Format.
+     * Sử dụng cơ chế Cache dựa trên Version: nếu CV chưa thay đổi kể từ lần
+     * xuất gần nhất, trả về URL Cloudinary đã lưu thay vì render lại.
+     * Bảo mật IDOR: userId luôn lấy từ JWT, không từ client.
      * @param {string} userId 
      * @param {object} payload - { cvData, themeConfig, templateId }
-     * @returns {Promise<Buffer>}
+     * @returns {Promise<object>} - { type: 'url'|'buffer', url?, buffer? }
      */
     async exportCvDraft(userId, payload = {}) {
-        let cvData = payload.cvData;
-        let themeConfig = payload.themeConfig;
-        let columnLayout = payload.columnLayout;
-        let templateId;
-
-        // Luôn lấy bản nháp từ DB để có templateId chính xác nhất
+        // Luôn lấy bản nháp từ DB để có version + cache info chính xác nhất
         const cvBuilder = await CvBuilderRepository.findByUserId(userId);
         if (!cvBuilder) {
             const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
@@ -266,18 +300,28 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
             throw error;
         }
 
-        // Ưu tiên dùng data từ payload (bản nháp mới nhất FE vừa gửi) nếu có,
-        // fallback về data đã lưu trong DB.
-        cvData = cvData || cvBuilder.cvData;
-        themeConfig = themeConfig || cvBuilder.themeConfig;
-        columnLayout = columnLayout || cvBuilder.columnLayout || {
+        // ── Cache Hit: version khớp → trả URL Cloudinary (tải nhanh, không tốn CPU) ──
+        if (
+            cvBuilder.pdfUrl &&
+            cvBuilder.lastPdfVersion !== null &&
+            cvBuilder.version === cvBuilder.lastPdfVersion
+        ) {
+            console.log('[ExportCV] Cache HIT — trả về URL Cloudinary đã lưu.');
+            return { type: 'url', url: cvBuilder.pdfUrl };
+        }
+
+        // ── Cache Miss: cần render PDF mới ──
+        console.log('[ExportCV] Cache MISS — bắt đầu render PDF mới...');
+
+        let cvData = payload.cvData || cvBuilder.cvData;
+        let themeConfig = payload.themeConfig || cvBuilder.themeConfig;
+        let columnLayout = payload.columnLayout || cvBuilder.columnLayout || {
             left: ['profile', 'contact', 'about', 'skills'],
-            right: ['experience', 'education', 'projects']
+            right: ['experience', 'education', 'projects', 'awards']
         };
-        templateId = payload.templateId || cvBuilder.templateId;
+        let templateId = payload.templateId || cvBuilder.templateId;
 
         // Tra cứu đường dẫn file EJS từ bảng cv_templates theo templateId
-        // Đây là bước then chốt để render đúng mẫu CV người dùng đang chọn.
         let ejsPath = null;
         if (templateId) {
             const template = await CvTemplateRepository.findActiveById(templateId);
@@ -287,15 +331,21 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
         }
 
         const PdfExportService = require('../utils/PdfExportService');
+        let pdfBuffer;
 
         try {
-            // Truyền ejsPath động vào PdfExportService
-            const pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout, ejsPath);
-            return pdfBuffer;
+            pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout, ejsPath);
         } catch (error) {
             console.error('[Export CV Pipeline Error]:', error);
             throw new Error('Đã xảy ra lỗi trong quá trình kết xuất PDF bằng render engine. (Server Out Of Memory)');
         }
+
+        // ── Fire-and-forget: đẩy upload Cloudinary vào background worker ──
+        // User nhận file PDF ngay lập tức, Worker xử lý upload + retry ngầm
+        const PdfCacheWorker = require('../utils/PdfCacheWorker');
+        PdfCacheWorker.enqueue(pdfBuffer, userId, cvBuilder.id, cvBuilder.version);
+
+        return { type: 'buffer', buffer: pdfBuffer };
     }
 }
 

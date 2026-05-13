@@ -29,7 +29,10 @@ const cvBuilderSchemas = {
         columnLayout: Joi.object({
             left: Joi.array().items(Joi.string()).optional(),
             right: Joi.array().items(Joi.string()).optional()
-        }).optional()
+        }).optional(),
+
+        // Optimistic Locking: version gửi lên từ FE để kiểm tra xung đột
+        version: Joi.number().integer().min(0).optional()
     }),
     aiSuggest: Joi.object({
         industry: Joi.string().trim().required().messages({

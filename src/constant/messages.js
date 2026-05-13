@@ -176,6 +176,9 @@ const MESSAGES = {
     AI_SUGGESTION_TIMEOUT: 'Hệ thống AI đang bận hoặc phản hồi chậm. Vui lòng thử lại sau.',
     ATS_CHECK_SUCCESS: 'Kiểm tra ATS hoàn tất.',
     ATS_PAYLOAD_INVALID: 'Thiếu nội dung CV hoặc Mô tả công việc (JD).',
+    CV_BUILDER_VERSION_CONFLICT: 'Dữ liệu CV đã được cập nhật bởi một phiên làm việc khác. Vui lòng làm mới trang để lấy bản mới nhất.',
+    EXPORT_CV_CACHED: 'File PDF đã sẵn sàng từ bản lưu trước đó.',
+    EXPORT_CV_SUCCESS: 'Xuất CV PDF thành công.',
 
     // Server errors
     INTERNAL_SERVER_ERROR: 'Lỗi server nội bộ.'

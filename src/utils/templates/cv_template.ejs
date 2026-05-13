@@ -246,8 +246,8 @@
         };
 
         const layout = columnLayout || { 
-            left: ['profile', 'contact', 'about', 'skills'], 
-            right: ['experience', 'education', 'projects'] 
+            left: ['experience', 'education', 'projects', 'awards'], 
+            right: ['profile', 'contact', 'about', 'skills'] 
         };
     %>
 
@@ -273,7 +273,7 @@
                 <div class="header-bottom-left">
                     <% layout.left.forEach(function(sId) { if(sId !== 'profile' && sId !== 'contact') { %>
                         <div class="section">
-                            <h3 class="section-title" style="color: <%= secondaryColor %>; border-bottom: 2px solid <%= primaryColor %>;"><%= SECTION_LABELS[sId] %></h3>
+                            <h3 class="section-title" style="color: <%= secondaryColor %>; border-bottom: 2px solid <%= primaryColor %>;"><%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %></h3>
                             <div class="prose" style="font-size: 11px;"><%- cvData[sId] || '' %></div>
                         </div>
                     <% } }); %>
@@ -283,7 +283,7 @@
                         <div class="section">
                             <div class="section-title-main">
                                 <div class="section-icon"><%- SECTION_ICONS[sId] || '' %></div>
-                                <%= SECTION_LABELS[sId] %>
+                                <%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %>
                             </div>
                             <% (cvData[sId] || []).forEach(function(item) { %>
                                 <div class="item">
@@ -303,12 +303,15 @@
 
         <!-- SIDEBAR LAYOUT (Left or Right) -->
         <% if (layoutMode === 'sidebar-left' || layoutMode === 'sidebar-right') { %>
+            <% const narrowColLayout = layout.left; %>
+            <% const wideColLayout = layout.right; %>
+            
             <div class="sidebar">
-                <% layout.left.forEach(function(sId) { %>
+                <% narrowColLayout.forEach(function(sId) { %>
                     <% if (sId === 'profile') { %>
                         <div class="avatar-container">
                             <% if (cvData.personal?.avatarUrl) { %>
-                                <img src="<%= cvData.personal.avatarUrl %>" class="avatar" alt="Avatar">
+                                <img src="<%- cvData.personal.avatarUrl %>" class="avatar" alt="Avatar">
                             <% } else { %>
                                 <div class="avatar" style="background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;">
                                     <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -319,7 +322,7 @@
                         </div>
                     <% } else if (sId === 'contact') { %>
                         <div class="section">
-                            <h3 class="section-title"><%= SECTION_LABELS.contact %></h3>
+                            <h3 class="section-title"><%- cvData.customLabels && cvData.customLabels.contact ? cvData.customLabels.contact : SECTION_LABELS.contact %></h3>
                             <div class="contact-item">
                                 <span class="contact-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg></span>
                                 <span><%- cvData.personal?.phoneNumber %></span>
@@ -333,32 +336,75 @@
                                 <span><%- cvData.personal?.address %></span>
                             </div>
                         </div>
+                    <% } else if (sId === 'about' || sId === 'skills') { %>
+                        <div class="section">
+                            <h3 class="section-title"><%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %></h3>
+                            <div class="prose" style="font-size: 11px; opacity: 0.9;"><%- cvData[sId] || '' %></div>
+                        </div>
                     <% } else { %>
                         <div class="section">
-                            <h3 class="section-title"><%= SECTION_LABELS[sId] || sId.toUpperCase() %></h3>
-                            <div class="prose" style="font-size: 11px; opacity: 0.9;"><%- cvData[sId] || '' %></div>
+                            <h3 class="section-title"><%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %></h3>
+                            <% (cvData[sId] || []).forEach(function(item) { %>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 11px; font-weight: 700; color: #fff;"><%- item.school || item.company || item.name %></div>
+                                    <div style="font-size: 10px; color: <%= primaryColor %>;"><%- item.degree || item.title %></div>
+                                    <div style="font-size: 9px; color: rgba(255,255,255,0.6);"><%- item.period %></div>
+                                </div>
+                            <% }); %>
                         </div>
                     <% } %>
                 <% }); %>
             </div>
             <div class="main-content">
-                <% layout.right.forEach(function(sId) { %>
-                    <div class="section">
-                        <div class="section-title-main">
-                            <div class="section-icon"><%- SECTION_ICONS[sId] || '' %></div>
-                            <%= SECTION_LABELS[sId] %>
-                        </div>
-                        <% (cvData[sId] || []).forEach(function(item) { %>
-                            <div class="item">
-                                <div class="item-header">
-                                    <div class="item-name"><%- item.school || item.company || item.name %></div>
-                                    <div class="item-period"><%- item.period %></div>
-                                </div>
-                                <div class="item-subtitle"><%- item.degree || item.title %></div>
-                                <div class="item-description prose"><%- item.description %></div>
+                <% wideColLayout.forEach(function(sId) { %>
+                    <% if (sId === 'profile') { %>
+                        <div class="section" style="display: flex; gap: 20px; align-items: center; margin-bottom: 30px;">
+                            <% if (cvData.personal?.avatarUrl) { %>
+                                <img src="<%- cvData.personal.avatarUrl %>" style="width: 100px; height: 100px; border-radius: <%= themeConfig.avatarBorderRadius || '50%' %>; object-fit: cover;" alt="Avatar">
+                            <% } %>
+                            <div>
+                                <div style="font-size: 26px; font-weight: 800; text-transform: uppercase; color: #2d3748; margin-bottom: 5px;"><%- cvData.personal?.fullName || 'HỌ VÀ TÊN' %></div>
+                                <div style="font-size: 16px; color: <%= primaryColor %>; font-weight: 600;"><%- cvData.personal?.title || 'Vị trí công việc' %></div>
                             </div>
-                        <% }); %>
-                    </div>
+                        </div>
+                    <% } else if (sId === 'contact') { %>
+                        <div class="section">
+                            <div class="section-title-main">
+                                <div class="section-icon"><%- SECTION_ICONS.contact || '' %></div>
+                                <%- cvData.customLabels && cvData.customLabels.contact ? cvData.customLabels.contact : SECTION_LABELS.contact %>
+                            </div>
+                            <div style="display: flex; gap: 20px; font-size: 13px; flex-wrap: wrap;">
+                                <% if(cvData.personal?.phoneNumber) { %><div><strong>SĐT:</strong> <%- cvData.personal.phoneNumber %></div><% } %>
+                                <% if(cvData.personal?.email) { %><div><strong>Email:</strong> <%- cvData.personal.email %></div><% } %>
+                                <% if(cvData.personal?.address) { %><div><strong>Địa chỉ:</strong> <%- cvData.personal.address %></div><% } %>
+                            </div>
+                        </div>
+                    <% } else if (sId === 'about' || sId === 'skills') { %>
+                        <div class="section">
+                            <div class="section-title-main">
+                                <div class="section-icon"><%- SECTION_ICONS[sId] || '' %></div>
+                                <%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %>
+                            </div>
+                            <div class="prose" style="font-size: 13px; line-height: 1.6;"><%- cvData[sId] || '' %></div>
+                        </div>
+                    <% } else { %>
+                        <div class="section">
+                            <div class="section-title-main">
+                                <div class="section-icon"><%- SECTION_ICONS[sId] || '' %></div>
+                                <%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %>
+                            </div>
+                            <% (cvData[sId] || []).forEach(function(item) { %>
+                                <div class="item">
+                                    <div class="item-header">
+                                        <div class="item-name"><%- item.school || item.company || item.name %></div>
+                                        <div class="item-period"><%- item.period %></div>
+                                    </div>
+                                    <div class="item-subtitle"><%- item.degree || item.title %></div>
+                                    <div class="item-description prose"><%- item.description %></div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
                 <% }); %>
             </div>
         <% } %>
@@ -378,7 +424,7 @@
                     <div class="section">
                         <div class="section-title-main">
                             <div class="section-icon"><%- SECTION_ICONS[sId] || '' %></div>
-                            <%= SECTION_LABELS[sId] %>
+                            <%- cvData.customLabels && cvData.customLabels[sId] ? cvData.customLabels[sId] : (SECTION_LABELS[sId] || sId.toUpperCase()) %>
                         </div>
                         <% if (Array.isArray(cvData[sId])) { %>
                             <% cvData[sId].forEach(function(item) { %>
@@ -400,10 +446,4 @@
         <% } %>
     </div>
 </body>
-</html>
-
-            </div>
-        </div>
-</body>
-
 </html>

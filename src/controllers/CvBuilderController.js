@@ -26,6 +26,8 @@ class CvBuilderController {
 
     /**
      * Cập nhật / Auto-save bản nháp CV.
+     * Hỗ trợ Optimistic Locking: nếu payload chứa `version`, server sẽ kiểm tra
+     * xung đột trước khi lưu. Trả về 409 nếu phát hiện chồng lấn.
      * @route PUT /api/v1/cv-builder
      * @access Candidate only
      */
@@ -39,9 +41,17 @@ class CvBuilderController {
             return res.status(HTTP_STATUS.OK).json({
                 success: true,
                 message: MESSAGES.UPDATE_CV_BUILDER_SUCCESS,
-                newAtsScore: result.newAtsScore
+                newAtsScore: result.newAtsScore,
+                newVersion: result.newVersion || undefined
             });
         } catch (error) {
+            // Xử lý riêng lỗi xung đột phiên bản (Optimistic Lock Conflict)
+            if (error.status === HTTP_STATUS.CONFLICT) {
+                return res.status(HTTP_STATUS.CONFLICT).json({
+                    success: false,
+                    message: error.message
+                });
+            }
             next(error);
         }
     }
@@ -166,7 +176,9 @@ class CvBuilderController {
     }
 
     /**
-     * Xuất file CV PDF trả về HTTP file stream
+     * Xuất file CV PDF.
+     * - Cache Hit (CV chưa sửa): trả về JSON { downloadUrl } trỏ đến Cloudinary.
+     * - Cache Miss (CV đã sửa hoặc lần đầu): render PDF mới và stream về client.
      * @route POST /api/v1/cv-builder/export
      * @access Candidate only
      */
@@ -175,15 +187,22 @@ class CvBuilderController {
             const { userId } = req.user;
             const payload = req.body;
             
-            const pdfBuffer = await CvBuilderService.exportCvDraft(userId, payload);
+            const result = await CvBuilderService.exportCvDraft(userId, payload);
 
-            // Ghi cấu hình Header yêu cầu browser tải về file chứ không phải parse json
+            // Cache Hit: trả URL Cloudinary cho FE redirect tải
+            if (result.type === 'url') {
+                return res.status(HTTP_STATUS.OK).json({
+                    success: true,
+                    message: MESSAGES.EXPORT_CV_CACHED,
+                    downloadUrl: result.url
+                });
+            }
+
+            // Cache Miss: stream file PDF trực tiếp về browser
             res.setHeader('Content-Type', 'application/pdf');
-            // Cấu hình attachment tải thẳng với tên mặc định. Có thể fetch tên user ném vào file name sau.
             res.setHeader('Content-Disposition', 'attachment; filename=Resume-Export.pdf');
             
-            // Xả buffer (stream raw data) về client trực tiếp 
-            return res.send(pdfBuffer);
+            return res.send(result.buffer);
             
         } catch (error) {
             next(error);

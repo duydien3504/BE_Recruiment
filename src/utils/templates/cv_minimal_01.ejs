@@ -146,7 +146,7 @@ const LABELS = {
                 <% const sbItems = cvData[sectionId] || []; %>
                 <% if (sbItems.length > 0) { %>
                     <div class="sb-section">
-                        <div class="sb-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
+                        <div class="sb-section-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
                         <div class="sb-text">
                         <% sbItems.forEach(function(item) { %>
                             <div style="margin-bottom:10px;">
@@ -186,7 +186,7 @@ const LABELS = {
                 <% const items = cvData[sectionId] || []; %>
                 <% if (items.length > 0) { %>
                     <div class="main-section">
-                        <div class="main-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
+                        <div class="main-section-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
                         <% items.forEach(function(item, idx) { %>
                             <div class="tl-wrap">
                                 <div class="tl-line-col">

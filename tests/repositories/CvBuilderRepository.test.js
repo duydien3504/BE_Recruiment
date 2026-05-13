@@ -16,6 +16,7 @@ describe('CvBuilderRepository', () => {
             themeConfig: { primaryColor: '#000000', layoutMode: '1-column', fontFamily: 'Inter' },
             cvData: {},
             atsScore: 0,
+            version: 1,
             created_at: '2026-01-01T00:00:00.000Z',
             updated_at: '2026-01-01T00:00:00.000Z',
             update: jest.fn(),
@@ -98,6 +99,60 @@ describe('CvBuilderRepository', () => {
             const result = await CvBuilderRepository.updateDraft('non-existent-id', { templateId: 'x' });
 
             expect(result).toBeNull();
+        });
+    });
+
+    // ─── updateDraftWithVersion (Optimistic Locking) ──────────────────────────
+
+    describe('updateDraftWithVersion', () => {
+        test('should update record when version matches', async () => {
+            const payload = { templateId: 'modern_01', cvData: { about: 'Updated' }, atsScore: 80 };
+            const updatedRecord = { ...mockCvBuilder, ...payload, version: 2 };
+            CvBuilder.findByPk = jest.fn().mockResolvedValue(mockCvBuilder);
+            mockCvBuilder.update.mockResolvedValue(updatedRecord);
+
+            const result = await CvBuilderRepository.updateDraftWithVersion('cv-uuid-001', payload, 1);
+
+            expect(CvBuilder.findByPk).toHaveBeenCalledWith('cv-uuid-001', {});
+            expect(mockCvBuilder.update).toHaveBeenCalledWith(payload);
+            expect(result).toEqual(updatedRecord);
+            expect(result.version).toBe(2);
+        });
+
+        test('should return null when version does NOT match (conflict detected)', async () => {
+            const recordWithHigherVersion = { ...mockCvBuilder, version: 5 };
+            CvBuilder.findByPk = jest.fn().mockResolvedValue(recordWithHigherVersion);
+
+            const result = await CvBuilderRepository.updateDraftWithVersion(
+                'cv-uuid-001',
+                { templateId: 'x' },
+                3 // Client gửi version 3, DB đang là 5
+            );
+
+            expect(result).toBeNull();
+            // Không gọi update vì version không khớp
+            expect(mockCvBuilder.update).not.toHaveBeenCalled();
+        });
+
+        test('should return null when record id not found', async () => {
+            CvBuilder.findByPk = jest.fn().mockResolvedValue(null);
+
+            const result = await CvBuilderRepository.updateDraftWithVersion(
+                'non-existent-id',
+                { templateId: 'x' },
+                1
+            );
+
+            expect(result).toBeNull();
+        });
+
+        test('should propagate DB error when findByPk throws', async () => {
+            const dbError = new Error('DB connection error');
+            CvBuilder.findByPk = jest.fn().mockRejectedValue(dbError);
+
+            await expect(
+                CvBuilderRepository.updateDraftWithVersion('cv-uuid-001', {}, 1)
+            ).rejects.toThrow('DB connection error');
         });
     });
 });

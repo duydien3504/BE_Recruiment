@@ -1,61 +1,158 @@
 const CvBuilderService = require('../../src/services/CvBuilderService');
-const CvBuilderRepository = require('../../src/repositories/CvBuilderRepository');
+const { CvBuilderRepository, CvTemplateRepository } = require('../../src/repositories');
 const PdfExportService = require('../../src/utils/PdfExportService');
+const PdfCacheWorker = require('../../src/utils/PdfCacheWorker');
 const HTTP_STATUS = require('../../src/constant/statusCode');
 
-jest.mock('../../src/repositories/CvBuilderRepository');
+jest.mock('../../src/repositories');
 jest.mock('../../src/utils/PdfExportService', () => ({
     generatePdf: jest.fn()
 }));
+jest.mock('../../src/utils/PdfCacheWorker', () => ({
+    enqueue: jest.fn()
+}));
 
 describe('CvBuilderService.exportCvDraft', () => {
+    const USER_ID = 'user-001';
+    const MOCK_PDF_BUFFER = Buffer.from('mock pdf data');
+    const MOCK_CLOUDINARY_URL = 'https://res.cloudinary.com/test/raw/upload/cv_builder_exports/cv_pdf_user-001_123.pdf';
+
     beforeEach(() => {
         jest.clearAllMocks();
+        CvTemplateRepository.findActiveById = jest.fn().mockResolvedValue(null);
     });
 
-    it('should query cvBuilder, call PdfExportService and return Buffer successfully', async () => {
-        const mockCvBuilder = {
-            id: '123',
+    // ─── Cache HIT: version khớp → trả URL Cloudinary ──────────────────────
+
+    test('should return cached Cloudinary URL when version matches lastPdfVersion (Cache HIT)', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue({
+            id: 'cv-1',
             cvData: { personal: { fullName: 'Test' } },
-            themeConfig: { primaryColor: '#000' }
-        };
-        const mockPdfBuffer = Buffer.from('mock pdf stream data');
+            themeConfig: { primaryColor: '#000' },
+            templateId: 'modern_it_01',
+            version: 5,
+            pdfUrl: MOCK_CLOUDINARY_URL,
+            lastPdfVersion: 5 // Trùng với version → cache valid
+        });
 
-        CvBuilderRepository.findByUserId.mockResolvedValue(mockCvBuilder);
-        PdfExportService.generatePdf.mockResolvedValue(mockPdfBuffer);
+        const result = await CvBuilderService.exportCvDraft(USER_ID);
 
-        const result = await CvBuilderService.exportCvDraft('user-1');
-
-        expect(CvBuilderRepository.findByUserId).toHaveBeenCalledWith('user-1');
-        expect(PdfExportService.generatePdf).toHaveBeenCalledWith(mockCvBuilder.cvData, mockCvBuilder.themeConfig);
-        expect(result).toBe(mockPdfBuffer);
+        expect(result).toEqual({ type: 'url', url: MOCK_CLOUDINARY_URL });
+        // Không gọi PdfExportService vì dùng cache
+        expect(PdfExportService.generatePdf).not.toHaveBeenCalled();
+        expect(PdfCacheWorker.enqueue).not.toHaveBeenCalled();
     });
 
-    it('should throw 404 NOT FOUND if cvBuilder draft does not exist', async () => {
+    // ─── Cache MISS: version lệch → render + fire-and-forget upload ────────
+
+    test('should render PDF and enqueue background upload when version differs (Cache MISS)', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue({
+            id: 'cv-1',
+            cvData: { personal: { fullName: 'Test' } },
+            themeConfig: { primaryColor: '#000' },
+            templateId: 'modern_it_01',
+            version: 6,
+            pdfUrl: MOCK_CLOUDINARY_URL,
+            lastPdfVersion: 5 // Lệch version → cache invalid
+        });
+
+        PdfExportService.generatePdf.mockResolvedValue(MOCK_PDF_BUFFER);
+
+        const result = await CvBuilderService.exportCvDraft(USER_ID);
+
+        expect(result).toEqual({ type: 'buffer', buffer: MOCK_PDF_BUFFER });
+        expect(PdfExportService.generatePdf).toHaveBeenCalled();
+        // Worker.enqueue được gọi với đúng tham số (Fire-and-forget)
+        expect(PdfCacheWorker.enqueue).toHaveBeenCalledWith(
+            MOCK_PDF_BUFFER,
+            USER_ID,
+            'cv-1',
+            6
+        );
+    });
+
+    // ─── Lần đầu export (chưa có cache) ────────────────────────────────────
+
+    test('should render PDF when no cache exists (pdfUrl is null)', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue({
+            id: 'cv-1',
+            cvData: {},
+            themeConfig: {},
+            templateId: 'modern_it_01',
+            version: 1,
+            pdfUrl: null,        // Chưa có cache
+            lastPdfVersion: null
+        });
+
+        PdfExportService.generatePdf.mockResolvedValue(MOCK_PDF_BUFFER);
+
+        const result = await CvBuilderService.exportCvDraft(USER_ID);
+
+        expect(result).toEqual({ type: 'buffer', buffer: MOCK_PDF_BUFFER });
+        expect(PdfExportService.generatePdf).toHaveBeenCalled();
+        expect(PdfCacheWorker.enqueue).toHaveBeenCalledWith(
+            MOCK_PDF_BUFFER,
+            USER_ID,
+            'cv-1',
+            1
+        );
+    });
+
+    // ─── User nhận PDF ngay lập tức (Worker chạy ngầm, không chặn) ─────────
+
+    test('should return PDF buffer immediately without waiting for Worker', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue({
+            id: 'cv-1',
+            cvData: {},
+            themeConfig: {},
+            templateId: null,
+            version: 2,
+            pdfUrl: null,
+            lastPdfVersion: null
+        });
+
+        PdfExportService.generatePdf.mockResolvedValue(MOCK_PDF_BUFFER);
+
+        const result = await CvBuilderService.exportCvDraft(USER_ID);
+
+        // User nhận file ngay, không phải đợi upload
+        expect(result).toEqual({ type: 'buffer', buffer: MOCK_PDF_BUFFER });
+        // Worker đã được gọi nhưng không block hàm
+        expect(PdfCacheWorker.enqueue).toHaveBeenCalledTimes(1);
+    });
+
+    // ─── CV không tồn tại → 404 ────────────────────────────────────────────
+
+    test('should throw 404 NOT FOUND if cvBuilder draft does not exist', async () => {
         CvBuilderRepository.findByUserId.mockResolvedValue(null);
 
-        try {
-            await CvBuilderService.exportCvDraft('user-1');
-        } catch (error) {
-            expect(error.status).toBe(HTTP_STATUS.NOT_FOUND);
-            expect(error.message).toBe('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
-        }
+        await expect(CvBuilderService.exportCvDraft(USER_ID)).rejects.toMatchObject({
+            status: HTTP_STATUS.NOT_FOUND,
+            message: 'Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.'
+        });
 
         expect(PdfExportService.generatePdf).not.toHaveBeenCalled();
     });
 
-    it('should throw generic server error if PDF generation process fails (e.g., OOM)', async () => {
-        const mockCvBuilder = {
+    // ─── Puppeteer crash → throw error (không catch) ───────────────────────
+
+    test('should throw server error if PDF generation (Puppeteer) fails', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue({
+            id: 'cv-1',
             cvData: {},
-            themeConfig: {}
-        };
-        CvBuilderRepository.findByUserId.mockResolvedValue(mockCvBuilder);
+            themeConfig: {},
+            templateId: null,
+            version: 1,
+            pdfUrl: null,
+            lastPdfVersion: null
+        });
         PdfExportService.generatePdf.mockRejectedValue(new Error('Puppeteer Crashed'));
 
-        try {
-            await CvBuilderService.exportCvDraft('user-1');
-        } catch (error) {
-            expect(error.message).toBe('Đã xảy ra lỗi trong quá trình kết xuất PDF bằng render engine. (Server Out Of Memory)');
-        }
+        await expect(CvBuilderService.exportCvDraft(USER_ID)).rejects.toThrow(
+            'Đã xảy ra lỗi trong quá trình kết xuất PDF bằng render engine. (Server Out Of Memory)'
+        );
+
+        // Worker không được gọi vì render đã thất bại
+        expect(PdfCacheWorker.enqueue).not.toHaveBeenCalled();
     });
 });

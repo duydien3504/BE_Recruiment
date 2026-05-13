@@ -142,16 +142,36 @@ function nextNum() { secIdx++; return secIdx; }
 %>
 <div class="cv-wrap">
 
-  <!-- MAIN COLUMN (left) -->
+  <!-- MAIN COLUMN (wide) maps to layout.right -->
   <div class="main-col">
-    <!-- Name block -->
-    <div class="name-block">
-      <div class="m-name"><%- (cvData.personal && cvData.personal.fullName) || 'Họ Tên' %></div>
-      <div class="m-title"><%- (cvData.personal && cvData.personal.title) || 'Chuyên viên Kinh tế' %></div>
-    </div>
-
     <% layout.right.forEach(function(sectionId) { %>
-      <% if (sectionId === 'about') { %>
+      <% if (sectionId === 'profile') { %>
+        <div class="name-block">
+          <div style="display: flex; gap: 15px; align-items: center;">
+            <% if (cvData.personal && cvData.personal.avatarUrl) { %>
+              <div style="width: 70px; height: 70px; flex-shrink: 0; border-radius: 50%; overflow: hidden; border: 2px solid <%= themeConfig.primaryColor || '#3F51B5' %>;">
+                <img src="<%= cvData.personal.avatarUrl %>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+              </div>
+            <% } %>
+            <div>
+              <div class="m-name"><%- (cvData.personal && cvData.personal.fullName) || 'Họ Tên' %></div>
+              <div class="m-title"><%- (cvData.personal && cvData.personal.title) || 'Vị trí công việc' %></div>
+            </div>
+          </div>
+        </div>
+      <% } else if (sectionId === 'contact') { %>
+        <div class="sec">
+          <div class="sec-title-wrap">
+            <div class="sec-number"><%= nextNum() %></div>
+            <div class="sec-title">Liên hệ</div>
+          </div>
+          <div class="item-desc prose">
+            <% if (cvData.personal && cvData.personal.phoneNumber) { %><p><strong>SĐT:</strong> <%- cvData.personal.phoneNumber %></p><% } %>
+            <% if (cvData.personal && cvData.personal.email) { %><p><strong>Email:</strong> <%- cvData.personal.email %></p><% } %>
+            <% if (cvData.personal && cvData.personal.address) { %><p><strong>Địa chỉ:</strong> <%- cvData.personal.address %></p><% } %>
+          </div>
+        </div>
+      <% } else if (sectionId === 'about') { %>
         <div class="summary-box prose"><%- cvData.about || '' %></div>
       <% } else if (sectionId === 'skills') { %>
         <div class="sec">
@@ -167,7 +187,7 @@ function nextNum() { secIdx++; return secIdx; }
           <div class="sec">
             <div class="sec-title-wrap">
               <div class="sec-number"><%= nextNum() %></div>
-              <div class="sec-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
+              <div class="sec-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
             </div>
             <% items.forEach(function(item) { %>
               <div class="item">
@@ -185,41 +205,43 @@ function nextNum() { secIdx++; return secIdx; }
     <% }); %>
   </div>
 
-  <!-- RIGHT SIDEBAR -->
+  <!-- SIDEBAR (narrow) maps to layout.left -->
   <div class="right-sb">
-    <!-- Avatar -->
-    <div class="sb-avatar">
-      <% if (cvData.personal && cvData.personal.avatarUrl) { %>
-        <img src="<%= cvData.personal.avatarUrl %>" alt="Avatar">
-      <% } else { %>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9da5c0" stroke-width="1.5">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-      <% } %>
-    </div>
-
     <% layout.left.forEach(function(sectionId) { %>
       <% if (sectionId === 'profile') { %>
-        <!-- done above -->
+        <!-- Avatar -->
+        <div class="sb-avatar">
+          <% if (cvData.personal && cvData.personal.avatarUrl) { %>
+            <img src="<%= cvData.personal.avatarUrl %>" alt="Avatar">
+          <% } else { %>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9da5c0" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          <% } %>
+        </div>
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 14px; font-weight: 800; color: <%= themeConfig.primaryColor || '#3F51B5' %>; text-transform: uppercase;"><%- (cvData.personal && cvData.personal.fullName) || 'Họ Tên' %></div>
+          <div style="font-size: 10px; color: #555; font-weight: 700; margin-top: 4px;"><%- (cvData.personal && cvData.personal.title) || 'Vị trí công việc' %></div>
+        </div>
       <% } else if (sectionId === 'contact') { %>
         <div class="sb-sec">
           <div class="sb-title">Liên hệ</div>
           <% if (cvData.personal && cvData.personal.phoneNumber) { %>
             <div class="ct-row">
               <div class="ct-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-              <div class="ct-val"><%= cvData.personal.phoneNumber %></div>
+              <div class="ct-val"><%- cvData.personal.phoneNumber %></div>
             </div>
           <% } %>
           <% if (cvData.personal && cvData.personal.email) { %>
             <div class="ct-row">
               <div class="ct-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
-              <div class="ct-val"><%= cvData.personal.email %></div>
+              <div class="ct-val"><%- cvData.personal.email %></div>
             </div>
           <% } %>
           <% if (cvData.personal && cvData.personal.address) { %>
             <div class="ct-row">
               <div class="ct-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
-              <div class="ct-val"><%= cvData.personal.address %></div>
+              <div class="ct-val"><%- cvData.personal.address %></div>
             </div>
           <% } %>
         </div>
@@ -240,11 +262,11 @@ function nextNum() { secIdx++; return secIdx; }
         <% if (sItems.length > 0) { %>
           <div class="sb-divider"></div>
           <div class="sb-sec">
-            <div class="sb-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
+            <div class="sb-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
             <% sItems.forEach(function(it) { %>
               <div style="margin-bottom:8px;">
                 <div style="font-size:9.5px;font-weight:700;color:#333;"><%- it.school || it.company || '' %></div>
-                <div style="font-size:8.5px;color:<%= themeConfig.primaryColor || '#3F51B5' %>;"><%- it.degree || it.title || '' %></div>
+                <div style="font-size:8.5px;color:<%- themeConfig.primaryColor || '#3F51B5' %>;"><%- it.degree || it.title || '' %></div>
                 <div style="font-size:8px;color:#999;"><%- it.period || '' %></div>
               </div>
             <% }); %>

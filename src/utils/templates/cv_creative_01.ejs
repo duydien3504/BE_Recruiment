@@ -195,7 +195,7 @@ const ICONS = {
                     <% const sbItems = cvData[sectionId] || []; %>
                     <% if (sbItems.length > 0) { %>
                         <div class="sb-section">
-                            <div class="sb-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
+                            <div class="sb-section-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId.toUpperCase()) %></div>
                             <% sbItems.forEach(function(item) { %>
                                 <div class="sb-item">
                                     <div class="sb-item-name"><%- item.school || item.company || item.name %></div>
@@ -239,7 +239,7 @@ const ICONS = {
                     <div class="main-section">
                         <div class="main-section-header">
                             <div class="main-icon-circle"><%- ICONS[sectionId] || '' %></div>
-                            <div class="main-section-title"><%= cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
+                            <div class="main-section-title"><%- cvData.customLabels && cvData.customLabels[sectionId] ? cvData.customLabels[sectionId] : (LABELS[sectionId] || sectionId) %></div>
                         </div>
                         <% items.forEach(function(item) { %>
                             <div class="tl-item">

@@ -12,7 +12,8 @@ describe('CvBuilderService.getCvDraft', () => {
         templateId: 'default_template',
         themeConfig: { primaryColor: '#000000', layoutMode: '1-column', fontFamily: 'Inter' },
         cvData: {},
-        atsScore: 0
+        atsScore: 0,
+        version: 1
     };
 
     const expectedFormattedResponse = {
@@ -20,7 +21,8 @@ describe('CvBuilderService.getCvDraft', () => {
         templateId: 'default_template',
         themeConfig: { primaryColor: '#000000', layoutMode: '1-column', fontFamily: 'Inter' },
         cvData: {},
-        atsScore: 0
+        atsScore: 0,
+        version: 1
     };
 
     beforeEach(() => {
@@ -73,7 +75,7 @@ describe('CvBuilderService.getCvDraft', () => {
         const result = await CvBuilderService.getCvDraft(USER_ID);
 
         // Chỉ chứa các field đã khai báo trong _formatResponse
-        expect(Object.keys(result)).toEqual(['id', 'templateId', 'themeConfig', 'cvData', 'atsScore']);
+        expect(Object.keys(result)).toEqual(['id', 'templateId', 'themeConfig', 'cvData', 'atsScore', 'version']);
         // Không expose userId hay timestamps
         expect(result).not.toHaveProperty('userId');
         expect(result).not.toHaveProperty('created_at');
