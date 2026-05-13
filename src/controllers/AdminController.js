@@ -40,7 +40,7 @@ class AdminController {
     async verifyCompany(req, res, next) {
         try {
             const { id } = req.params;
-            
+
             const CompanyService = require('../services/CompanyService');
             const result = await CompanyService.verifyCompany(id);
 

@@ -18,7 +18,7 @@ class PdfExportService {
      */
     async renderHtml(cvData, themeConfig, columnLayout, ejsPath) {
         const resolvedEjsPath = ejsPath
-            ? path.join(__dirname, ejsPath)
+            ? path.join(__dirname, ejsPath.replace(/^utils[/\\]/, ''))
             : path.join(__dirname, 'templates', 'cv_template.ejs');
 
         return await ejs.renderFile(resolvedEjsPath, {

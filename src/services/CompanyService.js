@@ -206,7 +206,7 @@ class CompanyService {
 
         const newVerifiedStatus = !company.verified;
         await CompanyRepository.update(companyId, { verified: newVerifiedStatus });
-        
+
         return {
             message: newVerifiedStatus ? "Đã cấp tích xanh!" : "Đã gỡ xác thực.",
             verified: newVerifiedStatus
