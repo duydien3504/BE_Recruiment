@@ -142,6 +142,59 @@ class CompanyService {
         };
     }
 
+    /**
+     * Lấy toàn bộ danh sách công ty (Admin) — bao gồm tất cả trạng thái
+     * @param {Object} params - { page, limit, keyword, status }
+     */
+    async getAllCompaniesForAdmin(params) {
+        const { page = 1, limit = 10, keyword = '', status } = params;
+
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 10;
+
+        const { count, rows } = await CompanyRepository.getAllCompaniesForAdmin({
+            page: pageNum,
+            limit: limitNum,
+            keyword,
+            status: status || null
+        });
+
+        // Flatten user info ra ngoài cho FE dễ dùng
+        const data = rows.map(row => {
+            const company = row.toJSON();
+            return {
+                companyId: company.companyId,
+                name: company.name,
+                taxCode: company.taxCode,
+                logoUrl: company.logoUrl,
+                scale: company.scale,
+                description: company.description,
+                addressDetail: company.addressDetail,
+                phoneNumber: company.phoneNumber,
+                status: company.status,
+                verified: company.verified,
+                createdAt: company.created_at || company.createdAt,
+                owner: company.user ? {
+                    userId: company.user.userId,
+                    email: company.user.email,
+                    fullName: company.user.fullName,
+                    phoneNumber: company.user.phoneNumber,
+                    accountStatus: company.user.status
+                } : null
+            };
+        });
+
+        return {
+            data,
+            pagination: {
+                total: count,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(count / limitNum)
+            }
+        };
+    }
+
     async getEmployerStatistics(userId) {
         const company = await CompanyRepository.findByUserId(userId);
         if (!company) {

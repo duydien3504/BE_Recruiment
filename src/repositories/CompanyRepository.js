@@ -71,6 +71,32 @@ class CompanyRepository extends BaseRepository {
             ]
         });
     }
+
+    async getAllCompaniesForAdmin({ keyword, status, page, limit }) {
+        const offset = (page - 1) * limit;
+
+        const where = { isDeleted: false };
+
+        if (status) {
+            // Chuẩn hóa: 'PENDING' -> 'Pending', 'active' -> 'Active'
+            where.status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+        }
+
+        if (keyword) {
+            where.name = { [Op.iLike]: `%${keyword}%` };
+        }
+
+        return await this.findAndCountAll(where, {
+            limit,
+            offset,
+            order: [['created_at', 'DESC']],
+            include: [{
+                model: require('../models').User,
+                as: 'user',
+                attributes: ['userId', 'email', 'fullName', 'phoneNumber', 'status']
+            }]
+        });
+    }
 }
 
 module.exports = new CompanyRepository();

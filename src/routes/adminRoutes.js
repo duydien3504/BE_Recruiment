@@ -571,6 +571,45 @@ router.get('/stats/growth', authenticateToken, authorize(['Admin']), AdminContro
 
 /**
  * @swagger
+ * /api/v1/admin/companies:
+ *   get:
+ *     summary: Danh sách toàn bộ công ty (Admin)
+ *     tags: [Admin]
+ *     description: Admin xem tất cả công ty, có thể lọc theo trạng thái và tìm kiếm theo tên
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Active, Inactive, Pending]
+ *         description: "Lọc theo trạng thái (bỏ trống = lấy tất cả)"
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         description: Tìm kiếm theo tên công ty
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Thành công
+ *       403:
+ *         description: Không có quyền truy cập
+ */
+router.get('/companies', authenticateToken, authorize(['Admin']), AdminController.getAllCompanies);
+
+/**
+ * @swagger
  * /api/v1/admin/companies/{id}/verify:
  *   patch:
  *     summary: Xác thực công ty (Admin)
@@ -601,4 +640,5 @@ router.get('/stats/growth', authenticateToken, authorize(['Admin']), AdminContro
 router.patch('/companies/:id/verify', authenticateToken, authorize(['Admin']), AdminController.verifyCompany);
 
 module.exports = router;
+
 

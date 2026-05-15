@@ -52,6 +52,24 @@ class AdminController {
             next(error);
         }
     }
+
+    /**
+     * Lấy danh sách toàn bộ công ty (Admin)
+     * @route GET /api/v1/admin/companies
+     */
+    async getAllCompanies(req, res, next) {
+        try {
+            const CompanyService = require('../services/CompanyService');
+            const result = await CompanyService.getAllCompaniesForAdmin(req.query);
+
+            return res.status(HTTP_STATUS.OK).json({
+                message: 'Lấy danh sách công ty thành công.',
+                ...result
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new AdminController();
