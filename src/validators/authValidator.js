@@ -179,9 +179,9 @@ const refreshTokenSchema = Joi.object({
 });
 
 const employerPaymentCallbackSchema = Joi.object({
-    vnp_ResponseCode: Joi.string().required(),
-    vnp_TxnRef: Joi.string().required(),
-    vnp_SecureHash: Joi.string().required()
+    resultCode: Joi.number().required(),
+    transId: Joi.number().required(),
+    signature: Joi.string().required()
 }).unknown(true);
 
 module.exports = {

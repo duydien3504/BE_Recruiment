@@ -41,7 +41,7 @@ router.get('/history', authenticateToken, authorize(['Employer', 'Company']), Pa
  * @swagger
  * /api/v1/payments/create-payment:
  *   post:
- *     summary: Tạo link thanh toán VNPay
+ *     summary: Tạo link thanh toán MoMo
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -63,7 +63,7 @@ router.post('/create-payment', authenticateToken, authorize(['Employer', 'Compan
  * @swagger
  * /api/v1/payments/callback:
  *   get:
- *     summary: Xử lý callback từ VNPay (Return URL)
+ *     summary: Xử lý callback từ MoMo (Return URL)
  *     tags: [Payments]
  */
 router.get('/callback', PaymentController.handleCallback);
@@ -71,10 +71,10 @@ router.get('/callback', PaymentController.handleCallback);
 /**
  * @swagger
  * /api/v1/payments/ipn:
- *   get:
- *     summary: Xử lý IPN từ VNPay (Instant Payment Notification)
+ *   post:
+ *     summary: Xử lý IPN từ MoMo (Instant Payment Notification)
  *     tags: [Payments]
  */
-router.get('/ipn', PaymentController.handleIPN);
+router.post('/ipn', PaymentController.handleIPN);
 
 module.exports = router;

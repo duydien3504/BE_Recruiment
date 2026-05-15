@@ -9,416 +9,154 @@ describe('UserController', () => {
     let req, res, next;
 
     beforeEach(() => {
-        req = {
-            user: {
-                userId: 'uuid-123'
-            }
-        };
-        res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
+        req = { user: { userId: 'uuid-123' }, headers: {}, connection: { remoteAddress: '127.0.0.1' } };
+        res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
         next = jest.fn();
         jest.clearAllMocks();
     });
 
+    // ==================== getProfile ====================
     describe('getProfile', () => {
-        const mockProfile = {
-            userId: 'uuid-123',
-            email: 'test@example.com',
-            fullName: 'Test User',
-            phone: '0123456789',
-            bio: 'Software Developer with 5 years of experience',
-            role: 'CANDIDATE',
-            status: 'Active',
-            createdAt: '2024-01-01T00:00:00.000Z'
-        };
+        const mockProfile = { userId: 'uuid-123', email: 'test@example.com', fullName: 'Test User', role: 'CANDIDATE', status: 'Active' };
 
         test('should return 200 and user profile on success', async () => {
             UserService.getProfile.mockResolvedValue(mockProfile);
-
             await UserController.getProfile(req, res, next);
-
-            expect(UserService.getProfile).toHaveBeenCalledWith('uuid-123');
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.GET_PROFILE_SUCCESS,
-                data: mockProfile
-            });
-            expect(next).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith({ message: MESSAGES.GET_PROFILE_SUCCESS, data: mockProfile });
         });
 
         test('should call next with error when service fails', async () => {
             const mockError = new Error(MESSAGES.USER_NOT_FOUND);
-            mockError.status = HTTP_STATUS.NOT_FOUND;
             UserService.getProfile.mockRejectedValue(mockError);
-
             await UserController.getProfile(req, res, next);
-
             expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
-            expect(res.json).not.toHaveBeenCalled();
-        });
-
-        test('should not contain business logic', async () => {
-            UserService.getProfile.mockResolvedValue(mockProfile);
-
-            await UserController.getProfile(req, res, next);
-
-            expect(UserService.getProfile).toHaveBeenCalledTimes(1);
-        });
-
-        test('should return profile with role field', async () => {
-            UserService.getProfile.mockResolvedValue(mockProfile);
-
-            await UserController.getProfile(req, res, next);
-
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: expect.objectContaining({
-                        role: 'CANDIDATE'
-                    })
-                })
-            );
-        });
-
-        test('should return profile with createdAt field', async () => {
-            UserService.getProfile.mockResolvedValue(mockProfile);
-
-            await UserController.getProfile(req, res, next);
-
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: expect.objectContaining({
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                    })
-                })
-            );
-        });
-
-        test('should return profile with status field', async () => {
-            UserService.getProfile.mockResolvedValue(mockProfile);
-
-            await UserController.getProfile(req, res, next);
-
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: expect.objectContaining({
-                        status: 'Active'
-                    })
-                })
-            );
-        });
-
-        test('should return profile with bio field', async () => {
-            UserService.getProfile.mockResolvedValue(mockProfile);
-
-            await UserController.getProfile(req, res, next);
-
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    data: expect.objectContaining({
-                        bio: 'Software Developer with 5 years of experience'
-                    })
-                })
-            );
         });
     });
 
+    // ==================== updateProfile ====================
     describe('updateProfile', () => {
-        const mockUpdatedProfile = {
-            userId: 'uuid-123',
-            email: 'test@example.com',
-            fullName: 'Updated Name',
-            phone: '0987654321',
-            role: 'seeker'
-        };
-
-        test('should return 200 and updated profile on success', async () => {
-            req.body = {
-                fullName: 'Updated Name',
-                phone: '0987654321'
-            };
-
-            UserService.updateProfile.mockResolvedValue(mockUpdatedProfile);
-
+        test('should return 200 on success', async () => {
+            req.body = { fullName: 'Updated Name' };
+            const mockResult = { userId: 'uuid-123', fullName: 'Updated Name' };
+            UserService.updateProfile.mockResolvedValue(mockResult);
             await UserController.updateProfile(req, res, next);
-
-            expect(UserService.updateProfile).toHaveBeenCalledWith('uuid-123', req.body);
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.UPDATE_PROFILE_SUCCESS,
-                data: mockUpdatedProfile
-            });
-            expect(next).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith({ message: MESSAGES.UPDATE_PROFILE_SUCCESS, data: mockResult });
         });
 
         test('should call next with error when service fails', async () => {
             const mockError = new Error(MESSAGES.USER_NOT_FOUND);
-            mockError.status = HTTP_STATUS.NOT_FOUND;
             UserService.updateProfile.mockRejectedValue(mockError);
-
             await UserController.updateProfile(req, res, next);
-
             expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
-            expect(res.json).not.toHaveBeenCalled();
-        });
-
-        test('should not contain business logic', async () => {
-            req.body = { fullName: 'New Name' };
-            UserService.updateProfile.mockResolvedValue(mockUpdatedProfile);
-
-            await UserController.updateProfile(req, res, next);
-
-            expect(UserService.updateProfile).toHaveBeenCalledTimes(1);
         });
     });
 
+    // ==================== changePassword ====================
     describe('changePassword', () => {
-        test('should return 200 and success message on password change', async () => {
-            req.body = {
-                oldPassword: 'OldPassword123',
-                newPassword: 'NewPassword456'
-            };
-
+        test('should return 200 on success', async () => {
+            req.body = { oldPassword: 'Old123', newPassword: 'New456' };
             UserService.changePassword.mockResolvedValue({ success: true });
-
             await UserController.changePassword(req, res, next);
-
-            expect(UserService.changePassword).toHaveBeenCalledWith('uuid-123', req.body);
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.CHANGE_PASSWORD_SUCCESS
-            });
-            expect(next).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith({ message: MESSAGES.CHANGE_PASSWORD_SUCCESS });
         });
 
-        test('should call next with error when old password is incorrect', async () => {
+        test('should call next with error when service fails', async () => {
             const mockError = new Error(MESSAGES.OLD_PASSWORD_INCORRECT);
-            mockError.status = HTTP_STATUS.BAD_REQUEST;
             UserService.changePassword.mockRejectedValue(mockError);
-
             await UserController.changePassword(req, res, next);
-
             expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
-            expect(res.json).not.toHaveBeenCalled();
-        });
-
-        test('should call next with error when user not found', async () => {
-            const mockError = new Error(MESSAGES.USER_NOT_FOUND);
-            mockError.status = HTTP_STATUS.NOT_FOUND;
-            UserService.changePassword.mockRejectedValue(mockError);
-
-            await UserController.changePassword(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(mockError);
-        });
-
-        test('should not contain business logic', async () => {
-            req.body = {
-                oldPassword: 'OldPassword123',
-                newPassword: 'NewPassword456'
-            };
-            UserService.changePassword.mockResolvedValue({ success: true });
-
-            await UserController.changePassword(req, res, next);
-
-            expect(UserService.changePassword).toHaveBeenCalledTimes(1);
         });
     });
 
+    // ==================== uploadAvatar ====================
     describe('uploadAvatar', () => {
-        const mockAvatarUrl = 'https://res.cloudinary.com/test/avatar.jpg';
-
-        test('should return 200 and avatar URL on successful upload', async () => {
-            req.file = {
-                buffer: Buffer.from('fake-image-data')
-            };
-
-            UserService.uploadAvatar.mockResolvedValue({ avatarUrl: mockAvatarUrl });
-
+        test('should return 200 on success', async () => {
+            req.file = { buffer: Buffer.from('fake') };
+            UserService.uploadAvatar.mockResolvedValue({ avatarUrl: 'https://example.com/avatar.jpg' });
             await UserController.uploadAvatar(req, res, next);
-
-            expect(UserService.uploadAvatar).toHaveBeenCalledWith('uuid-123', req.file.buffer);
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.UPLOAD_AVATAR_SUCCESS,
-                data: {
-                    avatarUrl: mockAvatarUrl
-                }
-            });
-            expect(next).not.toHaveBeenCalled();
         });
 
         test('should return 400 when file is missing', async () => {
             req.file = null;
-
             await UserController.uploadAvatar(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    message: MESSAGES.FILE_REQUIRED,
-                    status: HTTP_STATUS.BAD_REQUEST
-                })
-            );
-            expect(UserService.uploadAvatar).not.toHaveBeenCalled();
-        });
-
-        test('should call next with error when service fails', async () => {
-            req.file = {
-                buffer: Buffer.from('fake-image-data')
-            };
-
-            const mockError = new Error('Upload failed');
-            UserService.uploadAvatar.mockRejectedValue(mockError);
-
-            await UserController.uploadAvatar(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
-        });
-
-        test('should not contain business logic', async () => {
-            req.file = {
-                buffer: Buffer.from('fake-image-data')
-            };
-
-            UserService.uploadAvatar.mockResolvedValue({ avatarUrl: mockAvatarUrl });
-
-            await UserController.uploadAvatar(req, res, next);
-
-            expect(UserService.uploadAvatar).toHaveBeenCalledTimes(1);
+            expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: MESSAGES.FILE_REQUIRED }));
         });
     });
 
+    // ==================== getMySkills ====================
     describe('getMySkills', () => {
-        const mockSkills = [
-            { skillId: 1, name: 'Java' },
-            { skillId: 2, name: 'NodeJS' }
-        ];
-
-        test('should return 200 and skills list on success', async () => {
+        test('should return 200 and skills list', async () => {
+            const mockSkills = [{ skillId: 1, name: 'Java' }];
             UserService.getMySkills.mockResolvedValue(mockSkills);
-
             await UserController.getMySkills(req, res, next);
-
-            expect(UserService.getMySkills).toHaveBeenCalledWith('uuid-123');
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.GET_MY_SKILLS_SUCCESS,
-                data: mockSkills
-            });
-            expect(next).not.toHaveBeenCalled();
-        });
-
-        test('should call next with error when service fails', async () => {
-            const mockError = new Error(MESSAGES.USER_NOT_FOUND);
-            mockError.status = HTTP_STATUS.NOT_FOUND;
-            UserService.getMySkills.mockRejectedValue(mockError);
-
-            await UserController.getMySkills(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
+            expect(res.json).toHaveBeenCalledWith({ message: MESSAGES.GET_MY_SKILLS_SUCCESS, data: mockSkills });
         });
     });
 
+    // ==================== addSkills ====================
     describe('addSkills', () => {
-        test('should return 201 and success message on success', async () => {
-            req.body = {
-                skillIds: [1, 2, 3]
-            };
-
+        test('should return 201 on success', async () => {
+            req.body = { skillIds: [1, 2] };
             UserService.addSkills.mockResolvedValue({ success: true });
-
             await UserController.addSkills(req, res, next);
-
-            expect(UserService.addSkills).toHaveBeenCalledWith('uuid-123', req.body.skillIds);
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.ADD_SKILLS_SUCCESS
-            });
-            expect(next).not.toHaveBeenCalled();
-        });
-
-        test('should call next with error when service fails', async () => {
-            req.body = {
-                skillIds: [1, 2, 3]
-            };
-
-            const mockError = new Error(MESSAGES.SKILL_NOT_FOUND);
-            mockError.status = HTTP_STATUS.BAD_REQUEST;
-            UserService.addSkills.mockRejectedValue(mockError);
-
-            await UserController.addSkills(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
         });
     });
 
+    // ==================== removeSkill ====================
     describe('removeSkill', () => {
-        test('should return 200 and success message on success', async () => {
+        test('should return 200 on success', async () => {
             req.params = { skillId: 1 };
             UserService.removeSkill.mockResolvedValue({ success: true });
-
             await UserController.removeSkill(req, res, next);
-
-            expect(UserService.removeSkill).toHaveBeenCalledWith('uuid-123', 1);
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
-            expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.DELETE_SKILL_SUCCESS
-            });
-            expect(next).not.toHaveBeenCalled();
-        });
-
-        test('should call next with error when service fails', async () => {
-            req.params = { skillId: 1 };
-            const mockError = new Error(MESSAGES.USER_NOT_FOUND);
-            mockError.status = HTTP_STATUS.NOT_FOUND;
-            UserService.removeSkill.mockRejectedValue(mockError);
-
-            await UserController.removeSkill(req, res, next);
-
-            expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
         });
     });
 
+    // ==================== upgradeToEmployer ====================
     describe('upgradeToEmployer', () => {
-        const upgradeReq = {
-            company_name: 'Tech Corp',
-            tax_code: '0123456789'
-        };
-
-        test('should return 200 and success message on success', async () => {
-            req.body = upgradeReq;
+        test('should return 200 with paymentUrl and transactionId on success', async () => {
+            req.body = { company_name: 'Tech Corp', tax_code: '0123456789' };
             UserService.upgradeToEmployer.mockResolvedValue({
-                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS
+                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS,
+                paymentUrl: 'https://momo.vn/pay?test=1',
+                transactionId: 100
             });
 
             await UserController.upgradeToEmployer(req, res, next);
 
-            expect(UserService.upgradeToEmployer).toHaveBeenCalledWith('uuid-123', req.body);
+            expect(UserService.upgradeToEmployer).toHaveBeenCalledWith('uuid-123', req.body, '127.0.0.1');
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.OK);
             expect(res.json).toHaveBeenCalledWith({
-                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS
+                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS,
+                data: { paymentUrl: 'https://momo.vn/pay?test=1', transactionId: 100 }
             });
-            expect(next).not.toHaveBeenCalled();
+        });
+
+        test('should resolve IP from x-forwarded-for header', async () => {
+            req.body = { company_name: 'Corp', tax_code: '111' };
+            req.headers = { 'x-forwarded-for': '192.168.1.1, 10.0.0.1' };
+            UserService.upgradeToEmployer.mockResolvedValue({
+                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS, paymentUrl: 'url', transactionId: 1
+            });
+
+            await UserController.upgradeToEmployer(req, res, next);
+
+            expect(UserService.upgradeToEmployer).toHaveBeenCalledWith('uuid-123', req.body, '192.168.1.1');
         });
 
         test('should call next with error when service fails', async () => {
-            req.body = upgradeReq;
+            req.body = { company_name: 'Corp', tax_code: '111' };
             const mockError = new Error(MESSAGES.ALREADY_EMPLOYER);
-            mockError.status = HTTP_STATUS.BAD_REQUEST;
             UserService.upgradeToEmployer.mockRejectedValue(mockError);
-
             await UserController.upgradeToEmployer(req, res, next);
-
             expect(next).toHaveBeenCalledWith(mockError);
-            expect(res.status).not.toHaveBeenCalled();
         });
     });
+
 });

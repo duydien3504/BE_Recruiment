@@ -1,10 +1,23 @@
-const { UserRepository, SkillRepository, CompanyRepository } = require('../repositories');
+const { UserRepository, SkillRepository, CompanyRepository, TransactionRepository } = require('../repositories');
 const bcrypt = require('bcrypt');
 const uploadService = require('../utils/uploadService');
+const momoHelper = require('../utils/momoHelper');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
+const { ROLES } = require('../constant/roles');
+const { sequelize } = require('../config/database');
+const {
+    TRANSACTION_TYPES,
+    TRANSACTION_STATUSES,
+    PAYMENT_METHODS,
+    MOMO_RESULT_CODES
+} = require('../constant/transactionConstants');
+
+const MAX_UPGRADE_PAYMENT_RETRIES = 3;
+const UPGRADE_EMPLOYER_AMOUNT = 500000;
 
 class UserService {
+
     /**
      * Lấy thông tin profile của user
      * Complexity: O(1) - Primary key lookup
@@ -227,12 +240,14 @@ class UserService {
     }
 
     /**
-     * Đăng ký nâng cấp lên Employer
+     * Đăng ký nâng cấp lên Employer với tích hợp MoMo
+     * Hỗ trợ retry tối đa 3 lần thanh toán thất bại
      * @param {string} userId - User ID
-     * @param {Object} data - Company Info
-     * @returns {Object} Success message
+     * @param {Object} data - Company Info (company_name, tax_code, address, phone)
+     * @param {string} ipAddr - IP address for MoMo
+     * @returns {Object} { message, paymentUrl, transactionId }
      */
-    async upgradeToEmployer(userId, data) {
+    async upgradeToEmployer(userId, data, ipAddr) {
         const user = await UserRepository.findById(userId);
         if (!user) {
             const error = new Error(MESSAGES.USER_NOT_FOUND);
@@ -241,14 +256,70 @@ class UserService {
         }
 
         // Check existing company for user
-        const existingCompany = await CompanyRepository.findByUserId(userId);
-        if (existingCompany) {
+        let existingCompany = await CompanyRepository.findByUserId(userId);
+
+        // Case A: Company exists and already Active
+        if (existingCompany && existingCompany.status === 'Active') {
             const error = new Error(MESSAGES.ALREADY_EMPLOYER);
             error.status = HTTP_STATUS.BAD_REQUEST;
             throw error;
         }
 
-        // Check tax code
+        // Case B: Company exists and Pending (retry scenario)
+        if (existingCompany && existingCompany.status === 'Pending') {
+            const failedCount = await TransactionRepository.countFailedByCompanyAndType(
+                existingCompany.companyId,
+                TRANSACTION_TYPES.UPGRADE_EMPLOYER
+            );
+
+            if (failedCount >= MAX_UPGRADE_PAYMENT_RETRIES) {
+                // Exhausted retries → soft delete company, then fall through to Case C
+                await CompanyRepository.softDelete(existingCompany.companyId);
+                existingCompany = null;
+            } else {
+                // Still have retries → update company info + create new transaction
+                // Validate tax code (exclude current company)
+                const taxCodeOwner = await CompanyRepository.findByTaxCode(data.tax_code);
+                if (taxCodeOwner && taxCodeOwner.companyId !== existingCompany.companyId) {
+                    const error = new Error(MESSAGES.TAX_CODE_EXISTS);
+                    error.status = HTTP_STATUS.BAD_REQUEST;
+                    throw error;
+                }
+
+                // Update company info with new data from body
+                await CompanyRepository.update(existingCompany.companyId, {
+                    name: data.company_name,
+                    taxCode: data.tax_code,
+                    addressDetail: data.address,
+                    phoneNumber: data.phone
+                });
+
+                // Create new transaction for existing company
+                const transaction = await TransactionRepository.create({
+                    companyId: existingCompany.companyId,
+                    jobPostId: null,
+                    amount: UPGRADE_EMPLOYER_AMOUNT,
+                    paymentMethod: PAYMENT_METHODS.MOMO,
+                    transactionType: TRANSACTION_TYPES.UPGRADE_EMPLOYER,
+                    status: TRANSACTION_STATUSES.PENDING
+                });
+
+                const paymentUrl = await momoHelper.createPaymentUrl({
+                    amount: UPGRADE_EMPLOYER_AMOUNT,
+                    orderInfo: `NangCapEmployer${transaction.transactionId}`,
+                    orderId: transaction.transactionId.toString()
+                });
+
+                return {
+                    message: MESSAGES.UPGRADE_PAYMENT_RETRY,
+                    paymentUrl,
+                    transactionId: transaction.transactionId
+                };
+            }
+        }
+
+        // Case C: No company (or just soft-deleted) → create new
+        // Validate tax code
         const taxCodeExists = await CompanyRepository.findByTaxCode(data.tax_code);
         if (taxCodeExists) {
             const error = new Error(MESSAGES.TAX_CODE_EXISTS);
@@ -256,23 +327,44 @@ class UserService {
             throw error;
         }
 
-        // Create Company
-        // Map request fields to model fields
-        const companyData = {
-            userId,
-            name: data.company_name,
-            taxCode: data.tax_code,
-            addressDetail: data.address,
-            phoneNumber: data.phone,
-            status: 'Pending'
-        };
+        const result = await sequelize.transaction(async (databaseTransaction) => {
+            // Create Company
+            const company = await CompanyRepository.create({
+                userId,
+                name: data.company_name,
+                taxCode: data.tax_code,
+                addressDetail: data.address,
+                phoneNumber: data.phone,
+                status: 'Pending'
+            }, { transaction: databaseTransaction });
 
-        await CompanyRepository.create(companyData);
+            // Create Transaction
+            const transaction = await TransactionRepository.create({
+                companyId: company.companyId,
+                jobPostId: null,
+                amount: UPGRADE_EMPLOYER_AMOUNT,
+                paymentMethod: PAYMENT_METHODS.MOMO,
+                transactionType: TRANSACTION_TYPES.UPGRADE_EMPLOYER,
+                status: TRANSACTION_STATUSES.PENDING
+            }, { transaction: databaseTransaction });
 
-        return {
-            message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS
-        };
+            // Create MoMo payment URL
+            const paymentUrl = await momoHelper.createPaymentUrl({
+                amount: UPGRADE_EMPLOYER_AMOUNT,
+                orderInfo: `NangCapEmployer${transaction.transactionId}`,
+                orderId: transaction.transactionId.toString()
+            });
+
+            return {
+                message: MESSAGES.UPGRADE_EMPLOYER_SUCCESS,
+                paymentUrl,
+                transactionId: transaction.transactionId
+            };
+        });
+
+        return result;
     }
+
 
     // --- Admin Methods ---
 

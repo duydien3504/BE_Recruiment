@@ -8,7 +8,7 @@ const {
 } = require('../../src/repositories');
 const emailService = require('../../src/services/emailService');
 const jwtHelper = require('../../src/utils/jwtHelper');
-const vnpayHelper = require('../../src/utils/vnpayHelper');
+const momoHelper = require('../../src/utils/momoHelper');
 const { generateOtp, getOtpExpiration } = require('../../src/utils/otpGenerator');
 const bcrypt = require('bcrypt');
 const MESSAGES = require('../../src/constant/messages');
@@ -19,7 +19,7 @@ const { TRANSACTION_TYPES, TRANSACTION_STATUSES } = require('../../src/constant/
 
 jest.mock('../../src/services/emailService');
 jest.mock('../../src/utils/jwtHelper');
-jest.mock('../../src/utils/vnpayHelper');
+jest.mock('../../src/utils/momoHelper');
 jest.mock('../../src/utils/otpGenerator');
 jest.mock('bcrypt');
 jest.mock('../../src/config/database', () => ({
@@ -548,7 +548,7 @@ describe('AuthService', () => {
             UserRepository.create.mockResolvedValue({ userId: 'user-1' });
             CompanyRepository.create.mockResolvedValue({ companyId: 'company-1' });
             TransactionRepository.create.mockResolvedValue({ transactionId: 1001 });
-            vnpayHelper.createPaymentUrl.mockReturnValue('https://vnpay.vn/payment-url');
+            momoHelper.createPaymentUrl.mockResolvedValue('https://momo.vn/payment-url');
             sequelize.transaction.mockImplementation(async (callback) => callback({}));
 
             const result = await AuthService.registerEmployerAndCreatePayment(registerEmployerData);
@@ -571,7 +571,7 @@ describe('AuthService', () => {
             }), expect.any(Object));
             expect(result).toEqual({
                 transactionId: 1001,
-                paymentUrl: 'https://vnpay.vn/payment-url'
+                paymentUrl: 'https://momo.vn/payment-url'
             });
         });
 
@@ -588,11 +588,11 @@ describe('AuthService', () => {
 
     describe('handleEmployerPaymentCallback', () => {
         test('should activate user and company when callback success', async () => {
-            vnpayHelper.verifyCallback.mockReturnValue({
+            momoHelper.verifySignature.mockReturnValue({
                 isValid: true,
                 data: {
                     orderId: '1001',
-                    responseCode: '00'
+                    resultCode: 0
                 }
             });
             TransactionRepository.findById.mockResolvedValue({
@@ -607,9 +607,9 @@ describe('AuthService', () => {
             sequelize.transaction.mockImplementation(async (callback) => callback({}));
 
             const result = await AuthService.handleEmployerPaymentCallback({
-                vnp_TxnRef: '1001',
-                vnp_ResponseCode: '00',
-                vnp_SecureHash: 'valid'
+                transId: '1001',
+                resultCode: 0,
+                signature: 'valid'
             });
 
             expect(TransactionRepository.update).toHaveBeenCalledWith(1001, { status: TRANSACTION_STATUSES.SUCCESS }, expect.any(Object));

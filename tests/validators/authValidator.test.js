@@ -612,9 +612,9 @@ describe('AuthValidator', () => {
     describe('validateEmployerPaymentCallback', () => {
         test('should pass validation when required query params exist', () => {
             req.query = {
-                vnp_ResponseCode: '00',
-                vnp_TxnRef: '1001',
-                vnp_SecureHash: 'hash'
+                transId: '1001',
+                resultCode: 0,
+                signature: 'hash'
             };
 
             validateEmployerPaymentCallback(req, res, next);

@@ -4,7 +4,7 @@ const {
     CompanyRepository,
     UserRepository
 } = require('../repositories');
-const vnpayHelper = require('../utils/vnpayHelper');
+const momoHelper = require('../utils/momoHelper');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 const { sequelize } = require('../config/database');
@@ -12,15 +12,16 @@ const {
     TRANSACTION_TYPES,
     TRANSACTION_STATUSES,
     PAYMENT_METHODS,
-    VNPAY_RESPONSE_CODES
+    MOMO_RESULT_CODES
 } = require('../constant/transactionConstants');
+const { ROLES } = require('../constant/roles');
 
 const USER_STATUS_ACTIVE = 'Active';
 const COMPANY_STATUS_ACTIVE = 'Active';
 
 class PaymentService {
     /**
-     * Tạo link thanh toán VNPay
+     * Tạo link thanh toán MoMo
      * @param {Object} params - { jobPostId, userId, ipAddr }
      */
     async createPayment(params) {
@@ -57,17 +58,16 @@ class PaymentService {
             companyId: company.companyId,
             jobPostId: jobPostId,
             amount: amount,
-            paymentMethod: PAYMENT_METHODS.VNPAY,
+            paymentMethod: PAYMENT_METHODS.MOMO,
             transactionType: TRANSACTION_TYPES.JOB_POST,
             status: TRANSACTION_STATUSES.PENDING
         });
 
-        // Create VNPay payment URL
-        const paymentUrl = vnpayHelper.createPaymentUrl({
+        // Create MoMo payment URL
+        const paymentUrl = await momoHelper.createPaymentUrl({
             amount: amount,
             orderInfo: `ThanhToanTinTuyenDung${jobPostId}`,
-            orderId: transaction.transactionId.toString(),
-            ipAddr: ipAddr
+            orderId: transaction.transactionId.toString()
         });
 
         return {
@@ -78,12 +78,12 @@ class PaymentService {
     }
 
     /**
-     * Xử lý callback từ VNPay
-     * @param {Object} vnpParams - Query params từ VNPay
+     * Xử lý callback/IPN từ MoMo
+     * @param {Object} momoParams - Data từ MoMo
      */
-    async handleCallback(vnpParams) {
+    async handleCallback(momoParams) {
         // Verify signature
-        const { isValid, data } = vnpayHelper.verifyCallback(vnpParams);
+        const { isValid, data } = momoHelper.verifySignature(momoParams);
 
         if (!isValid) {
             const error = new Error('Chữ ký không hợp lệ.');
@@ -100,13 +100,13 @@ class PaymentService {
         }
 
         // Check response code
-        if (data.responseCode === VNPAY_RESPONSE_CODES.SUCCESS) {
+        if (data.resultCode === MOMO_RESULT_CODES.SUCCESS) {
             await sequelize.transaction(async (databaseTransaction) => {
                 await TransactionRepository.update(transaction.transactionId, {
                     status: TRANSACTION_STATUSES.SUCCESS,
-                    transactionNo: data.transactionNo,
-                    bankCode: data.bankCode,
-                    payDate: data.payDate
+                    transactionNo: data.transId,
+                    bankCode: data.payType,
+                    payDate: data.responseTime
                 }, { transaction: databaseTransaction });
 
                 if (transaction.transactionType === TRANSACTION_TYPES.JOB_POST && transaction.jobPostId) {
@@ -130,13 +130,27 @@ class PaymentService {
                     await CompanyRepository.updateStatus(company.companyId, COMPANY_STATUS_ACTIVE, { transaction: databaseTransaction });
                     await UserRepository.updateStatus(company.userId, USER_STATUS_ACTIVE, { transaction: databaseTransaction });
                 }
+
+                if (transaction.transactionType === TRANSACTION_TYPES.UPGRADE_EMPLOYER) {
+                    const company = await CompanyRepository.findById(transaction.companyId, { transaction: databaseTransaction });
+                    if (!company) {
+                        const error = new Error(MESSAGES.COMPANY_NOT_FOUND);
+                        error.status = HTTP_STATUS.NOT_FOUND;
+                        throw error;
+                    }
+
+                    await CompanyRepository.updateStatus(company.companyId, COMPANY_STATUS_ACTIVE, { transaction: databaseTransaction });
+                    await UserRepository.update(company.userId, { roleId: ROLES.EMPLOYER }, { transaction: databaseTransaction });
+                }
             });
 
             return {
                 success: true,
                 message: transaction.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION
                     ? MESSAGES.EMPLOYER_ACCOUNT_ACTIVATED_SUCCESS
-                    : MESSAGES.PAYMENT_SUCCESS,
+                    : transaction.transactionType === TRANSACTION_TYPES.UPGRADE_EMPLOYER
+                        ? MESSAGES.UPGRADE_EMPLOYER_ACTIVATED_SUCCESS
+                        : MESSAGES.PAYMENT_SUCCESS,
                 jobPostId: transaction.jobPostId,
                 transactionType: transaction.transactionType
             };
@@ -144,8 +158,21 @@ class PaymentService {
             // Payment failed
             await TransactionRepository.update(transaction.transactionId, {
                 status: TRANSACTION_STATUSES.FAILED,
-                transactionNo: data.transactionNo
+                transactionNo: data.transId
             });
+
+            // Handle retry logic for UPGRADE_EMPLOYER
+            if (transaction.transactionType === TRANSACTION_TYPES.UPGRADE_EMPLOYER) {
+                const MAX_UPGRADE_PAYMENT_RETRIES = 3;
+                const failedCount = await TransactionRepository.countFailedByCompanyAndType(
+                    transaction.companyId,
+                    TRANSACTION_TYPES.UPGRADE_EMPLOYER
+                );
+
+                if (failedCount >= MAX_UPGRADE_PAYMENT_RETRIES) {
+                    await CompanyRepository.softDelete(transaction.companyId);
+                }
+            }
 
             return {
                 success: false,

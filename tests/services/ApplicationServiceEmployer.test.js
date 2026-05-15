@@ -68,7 +68,7 @@ describe('ApplicationService.getEmployerApplications', () => {
                 {
                     applicationId: 10,
                     status: 'Pending',
-                    createdAt: '2026-03-15T12:00:00.000Z',
+                    appliedAt: '2026-03-15T12:00:00.000Z',
                     user: {
                         fullName: 'Nguyen Van A',
                         experienceYears: 3,

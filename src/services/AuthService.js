@@ -8,7 +8,7 @@ const {
 } = require('../repositories');
 const emailService = require('./emailService');
 const jwtHelper = require('../utils/jwtHelper');
-const vnpayHelper = require('../utils/vnpayHelper');
+const momoHelper = require('../utils/momoHelper');
 const { generateOtp, getOtpExpiration } = require('../utils/otpGenerator');
 const { generatePassword } = require('../utils/passwordGenerator');
 const MESSAGES = require('../constant/messages');
@@ -19,7 +19,7 @@ const {
     TRANSACTION_TYPES,
     TRANSACTION_STATUSES,
     PAYMENT_METHODS,
-    VNPAY_RESPONSE_CODES
+    MOMO_RESULT_CODES
 } = require('../constant/transactionConstants');
 
 const BCRYPT_COST = 14;
@@ -32,15 +32,15 @@ const COMPANY_STATUS_ACTIVE = 'Active';
 
 class AuthService {
     resolveEmployerPaymentCallbackUrl() {
-        if (process.env.VNPAY_EMPLOYER_RETURN_URL) {
-            return process.env.VNPAY_EMPLOYER_RETURN_URL;
+        if (process.env.MOMO_EMPLOYER_RETURN_URL) {
+            return process.env.MOMO_EMPLOYER_RETURN_URL;
         }
 
-        if (process.env.vnp_Return_Url && process.env.vnp_Return_Url.includes('/api/v1/payments/callback')) {
-            return process.env.vnp_Return_Url.replace('/api/v1/payments/callback', '/api/v1/auth/employer/payment-callback');
+        if (process.env.MOMO_RETURN_URL && process.env.MOMO_RETURN_URL.includes('/api/v1/payments/callback')) {
+            return process.env.MOMO_RETURN_URL.replace('/api/v1/payments/callback', '/api/v1/auth/employer/payment-callback');
         }
 
-        return process.env.vnp_Return_Url;
+        return process.env.MOMO_RETURN_URL;
     }
 
     async register(registerData) {
@@ -382,16 +382,15 @@ class AuthService {
                 companyId: company.companyId,
                 jobPostId: null,
                 amount: ACCOUNT_REGISTRATION_AMOUNT,
-                paymentMethod: PAYMENT_METHODS.VNPAY,
+                paymentMethod: PAYMENT_METHODS.MOMO,
                 transactionType: TRANSACTION_TYPES.ACCOUNT_REGISTRATION,
                 status: TRANSACTION_STATUSES.PENDING
             }, { transaction: databaseTransaction });
 
-            const paymentUrl = vnpayHelper.createPaymentUrl({
+            const paymentUrl = await momoHelper.createPaymentUrl({
                 amount: ACCOUNT_REGISTRATION_AMOUNT,
                 orderInfo: `ThanhToanDangKyNhaTuyenDung${transaction.transactionId}`,
                 orderId: transaction.transactionId.toString(),
-                ipAddr,
                 returnUrl: this.resolveEmployerPaymentCallbackUrl()
             });
 
@@ -404,8 +403,8 @@ class AuthService {
         return result;
     }
 
-    async handleEmployerPaymentCallback(vnpParams) {
-        const { isValid, data } = vnpayHelper.verifyCallback({ ...vnpParams });
+    async handleEmployerPaymentCallback(momoParams) {
+        const { isValid, data } = momoHelper.verifySignature({ ...momoParams });
 
         if (!isValid) {
             const error = new Error(MESSAGES.PAYMENT_SIGNATURE_INVALID);
@@ -426,7 +425,7 @@ class AuthService {
             throw error;
         }
 
-        if (data.responseCode === VNPAY_RESPONSE_CODES.SUCCESS) {
+        if (data.resultCode === MOMO_RESULT_CODES.SUCCESS) {
             const callbackResult = await sequelize.transaction(async (databaseTransaction) => {
                 await TransactionRepository.update(transaction.transactionId, {
                     status: TRANSACTION_STATUSES.SUCCESS

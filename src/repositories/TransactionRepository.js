@@ -21,6 +21,14 @@ class TransactionRepository extends BaseRepository {
     async updateStatus(transactionId, status, options = {}) {
         return await this.update(transactionId, { status }, options);
     }
+
+    async countFailedByCompanyAndType(companyId, transactionType) {
+        return await this.count({
+            companyId,
+            transactionType,
+            status: 'Failed'
+        });
+    }
 }
 
 module.exports = new TransactionRepository();

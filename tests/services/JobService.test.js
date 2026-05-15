@@ -17,7 +17,7 @@ jest.mock('../../src/repositories', () => ({
     }
 }));
 
-jest.mock('../../src/utils/vnpayHelper', () => ({
+jest.mock('../../src/utils/momoHelper', () => ({
     createPaymentUrl: jest.fn()
 }));
 
@@ -125,7 +125,7 @@ describe('JobService', () => {
 
     describe('createJob', () => {
         const { CompanyRepository, TransactionRepository } = require('../../src/repositories');
-        const vnpayHelper = require('../../src/utils/vnpayHelper');
+        const momoHelper = require('../../src/utils/momoHelper');
 
         test('should create job with payment URL', async () => {
             const mockCompany = { companyId: 'company-uuid' };
@@ -140,12 +140,12 @@ describe('JobService', () => {
             };
             const mockJob = { jobPostId: 1, status: 'Draft' };
             const mockTransaction = { transactionId: 100 };
-            const mockPaymentUrl = 'https://vnpay.vn/payment';
+            const mockPaymentUrl = 'https://momo.vn/payment';
 
             CompanyRepository.findByUserId.mockResolvedValue(mockCompany);
             JobPostRepository.create.mockResolvedValue(mockJob);
             TransactionRepository.create.mockResolvedValue(mockTransaction);
-            vnpayHelper.createPaymentUrl.mockReturnValue(mockPaymentUrl);
+            momoHelper.createPaymentUrl.mockResolvedValue(mockPaymentUrl);
 
             const result = await JobService.createJob('user-uuid', jobData, '127.0.0.1');
 
@@ -156,7 +156,7 @@ describe('JobService', () => {
                 quantity: 5
             }));
             expect(TransactionRepository.create).toHaveBeenCalled();
-            expect(vnpayHelper.createPaymentUrl).toHaveBeenCalled();
+            expect(momoHelper.createPaymentUrl).toHaveBeenCalled();
             expect(result.job.status).toBe('Draft');
             expect(result.paymentUrl).toBe(mockPaymentUrl);
         });

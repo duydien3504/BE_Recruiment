@@ -132,7 +132,7 @@ router.get('/', JobController.getJobs);
  *                       example: "Draft"
  *                     paymentUrl:
  *                       type: string
- *                       example: "https://sandbox.vnpayment.vn/..."
+ *                       example: "https://test-payment.momo.vn/v2/gateway/pay..."
  *                     amount:
  *                       type: number
  *                       example: 10000

@@ -374,9 +374,12 @@ router.delete('/skills/:skillId', authenticateToken, validateDeleteSkill, UserCo
  * @swagger
  * /api/v1/users/upgrade-employer:
  *   post:
- *     summary: Đăng ký nâng cấp lên Employer
+ *     summary: Đăng ký nâng cấp lên Employer (tích hợp MoMo)
  *     tags: [Users]
- *     description: User Candidate đăng ký thông tin công ty để nâng cấp thành Employer
+ *     description: |
+ *       User Candidate đăng ký thông tin công ty để nâng cấp thành Employer.
+ *       Trả về link thanh toán MoMo để kích hoạt.
+ *       Hỗ trợ retry tối đa 3 lần thanh toán thất bại.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -403,7 +406,7 @@ router.delete('/skills/:skillId', authenticateToken, validateDeleteSkill, UserCo
  *                 example: "0987654321"
  *     responses:
  *       200:
- *         description: Đăng ký nâng cấp thành công
+ *         description: Đăng ký nâng cấp thành công, trả về link thanh toán
  *         content:
  *           application/json:
  *             schema:
@@ -411,7 +414,16 @@ router.delete('/skills/:skillId', authenticateToken, validateDeleteSkill, UserCo
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Đăng ký nâng cấp thành công."
+ *                   example: "Đăng ký nâng cấp thành công. Vui lòng thanh toán để kích hoạt."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     paymentUrl:
+ *                       type: string
+ *                       example: "https://test-payment.momo.vn/v2/gateway/pay..."
+ *                     transactionId:
+ *                       type: integer
+ *                       example: 1
  *       400:
  *         description: Dữ liệu không hợp lệ hoặc đã tồn tại (Tax code, đã đăng ký)
  *       401:

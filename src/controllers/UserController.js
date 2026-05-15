@@ -2,6 +2,18 @@ const UserService = require('../services/UserService');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 
+const resolveClientIp = (req) => {
+    const forwardedIp = req.headers['x-forwarded-for'];
+    if (forwardedIp) {
+        return String(forwardedIp).split(',')[0].trim();
+    }
+
+    return req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.connection?.socket?.remoteAddress ||
+        '127.0.0.1';
+};
+
 class UserController {
     /**
      * Lấy thông tin profile của user đang đăng nhập
@@ -137,16 +149,21 @@ class UserController {
     }
 
     /**
-     * Đăng ký nâng cấp lên Employer
+     * Đăng ký nâng cấp lên Employer (tích hợp MoMo)
      * @route POST /api/v1/users/upgrade-employer
      */
     async upgradeToEmployer(req, res, next) {
         try {
             const userId = req.user.userId;
-            const result = await UserService.upgradeToEmployer(userId, req.body);
+            const ipAddr = resolveClientIp(req);
+            const result = await UserService.upgradeToEmployer(userId, req.body, ipAddr);
 
             return res.status(HTTP_STATUS.OK).json({
-                message: result.message
+                message: result.message,
+                data: {
+                    paymentUrl: result.paymentUrl,
+                    transactionId: result.transactionId
+                }
             });
         } catch (error) {
             next(error);

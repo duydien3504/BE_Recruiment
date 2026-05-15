@@ -19,7 +19,7 @@ describe('ApplicationService.getMyApplications', () => {
         jobPostId: 5,
         coverLetter: 'My cover letter',
         status: 'Pending',
-        createdAt: '2026-03-15T11:00:00.000Z',
+        appliedAt: '2026-03-15T11:00:00.000Z',
         jobPost: {
             title: 'Backend Developer',
             company: { name: 'Tech Corp' }

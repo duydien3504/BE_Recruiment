@@ -254,7 +254,7 @@ describe('AuthController', () => {
             };
             req.headers = { 'x-forwarded-for': '10.0.0.1' };
             const mockResult = {
-                paymentUrl: 'https://vnpay.vn/payment-url',
+                paymentUrl: 'https://momo.vn/payment-url',
                 transactionId: 1001
             };
             AuthService.registerEmployerAndCreatePayment.mockResolvedValue(mockResult);
@@ -270,7 +270,7 @@ describe('AuthController', () => {
                 success: true,
                 message: MESSAGES.EMPLOYER_REGISTER_INIT_SUCCESS,
                 data: {
-                    paymentUrl: 'https://vnpay.vn/payment-url',
+                    paymentUrl: 'https://momo.vn/payment-url',
                     transactionId: 1001
                 }
             });
@@ -280,9 +280,9 @@ describe('AuthController', () => {
     describe('employerPaymentCallback', () => {
         test('should return success response when callback success', async () => {
             req.query = {
-                vnp_TxnRef: '1001',
-                vnp_ResponseCode: '00',
-                vnp_SecureHash: 'hash'
+                transId: '1001',
+                resultCode: 0,
+                signature: 'hash'
             };
             AuthService.handleEmployerPaymentCallback.mockResolvedValue({
                 success: true,

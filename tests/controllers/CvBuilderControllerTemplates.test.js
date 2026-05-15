@@ -36,7 +36,7 @@ describe('CvBuilderController.getTemplates', () => {
     });
 
     it('should pass industry query to the service and return templates', async () => {
-        req.query.industry = 'IT';
+        req.query.category = 'IT';
         const mockTemplates = [{ templateId: 't1', category: 'IT' }];
         CvBuilderService.getTemplates.mockResolvedValue(mockTemplates);
 

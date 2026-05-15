@@ -100,7 +100,7 @@ describe('JobController', () => {
             req.body = { title: 'Java Dev' };
             const mockResult = {
                 job: { jobPostId: 1, status: 'Draft' },
-                paymentUrl: 'https://vnpay.vn/pay',
+                paymentUrl: 'https://momo.vn/pay',
                 amount: 10000
             };
 
@@ -112,7 +112,7 @@ describe('JobController', () => {
             expect(res.status).toHaveBeenCalledWith(HTTP_STATUS.CREATED);
             expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
                 data: expect.objectContaining({
-                    paymentUrl: 'https://vnpay.vn/pay'
+                    paymentUrl: 'https://momo.vn/pay'
                 })
             }));
         });

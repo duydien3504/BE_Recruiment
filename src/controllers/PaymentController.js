@@ -23,7 +23,7 @@ class PaymentController {
     }
 
     /**
-     * Handle payment callback from VNPay
+     * Handle payment callback from MoMo
      * @route GET /api/v1/payments/callback
      */
     async handleCallback(req, res, next) {
@@ -34,6 +34,10 @@ class PaymentController {
                 const transformUrl = process.env.CLIENT_URL || 'http://localhost:3000';
                 if (result.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION) {
                     res.redirect(`${transformUrl}/payment/account-activated`);
+                    return;
+                }
+                if (result.transactionType === TRANSACTION_TYPES.UPGRADE_EMPLOYER) {
+                    res.redirect(`${transformUrl}/payment/upgrade-activated`);
                     return;
                 }
                 res.redirect(`${transformUrl}/payment/success?jobId=${result.jobPostId}`);
@@ -50,18 +54,19 @@ class PaymentController {
 
     /**
      * Handle payment callback for IPN (Instant Payment Notification)
-     * @route GET /api/v1/payments/ipn
+     * @route POST /api/v1/payments/ipn
      */
     async handleIPN(req, res) {
         try {
-            const result = await PaymentService.handleCallback(req.query);
+            const result = await PaymentService.handleCallback(req.body);
             if (result.success) {
-                res.status(200).json({ RspCode: '00', Message: 'Confirm Success' });
+                res.status(200).json({ resultCode: 0, message: 'Success' });
             } else {
-                res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' });
+                res.status(200).json({ resultCode: 0, message: 'Order already confirmed' });
             }
         } catch (error) {
-            res.status(200).json({ RspCode: '99', Message: 'Unknow error' });
+            console.error('IPN Error:', error);
+            res.status(200).json({ resultCode: 99, message: 'Unknown error' });
         }
     }
 

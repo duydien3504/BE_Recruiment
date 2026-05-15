@@ -1,6 +1,7 @@
 const TRANSACTION_TYPES = {
     JOB_POST: 'JobPost',
-    ACCOUNT_REGISTRATION: 'AccountRegistration'
+    ACCOUNT_REGISTRATION: 'AccountRegistration',
+    UPGRADE_EMPLOYER: 'UpgradeEmployer'
 };
 
 const TRANSACTION_TYPE_VALUES = Object.values(TRANSACTION_TYPES);
@@ -15,11 +16,11 @@ const TRANSACTION_STATUSES = {
 const TRANSACTION_STATUS_VALUES = Object.values(TRANSACTION_STATUSES);
 
 const PAYMENT_METHODS = {
-    VNPAY: 'VNPay'
+    MOMO: 'MoMo'
 };
 
-const VNPAY_RESPONSE_CODES = {
-    SUCCESS: '00'
+const MOMO_RESULT_CODES = {
+    SUCCESS: 0
 };
 
 module.exports = {
@@ -28,5 +29,5 @@ module.exports = {
     TRANSACTION_STATUSES,
     TRANSACTION_STATUS_VALUES,
     PAYMENT_METHODS,
-    VNPAY_RESPONSE_CODES
+    MOMO_RESULT_CODES
 };

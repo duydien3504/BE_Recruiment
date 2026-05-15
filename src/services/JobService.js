@@ -192,11 +192,11 @@ class JobService {
      * Tạo tin tuyển dụng (Employer)
      * @param {string} userId
      * @param {Object} jobData
-     * @param {string} ipAddr - IP address for VNPay
+     * @param {string} ipAddr - IP address for MoMo
      */
     async createJob(userId, jobData, ipAddr) {
         const { CompanyRepository, TransactionRepository } = require('../repositories');
-        const vnpayHelper = require('../utils/vnpayHelper');
+        const momoHelper = require('../utils/momoHelper');
 
         // Verify user has company
         const company = await CompanyRepository.findByUserId(userId);
@@ -232,17 +232,16 @@ class JobService {
             companyId: company.companyId,
             jobPostId: job.jobPostId,
             amount: amount,
-            paymentMethod: PAYMENT_METHODS.VNPAY,
+            paymentMethod: PAYMENT_METHODS.MOMO,
             transactionType: TRANSACTION_TYPES.JOB_POST,
             status: TRANSACTION_STATUSES.PENDING
         });
 
-        // Tạo VNPay payment URL
-        const paymentUrl = vnpayHelper.createPaymentUrl({
+        // Tạo MoMo payment URL
+        const paymentUrl = await momoHelper.createPaymentUrl({
             amount: amount,
             orderInfo: `ThanhToanTinTuyenDung${job.jobPostId}`,
-            orderId: transaction.transactionId.toString(),
-            ipAddr: ipAddr
+            orderId: transaction.transactionId.toString()
         });
 
         return {
