@@ -163,6 +163,28 @@ class CvBuilderService {
     }
 
     /**
+     * Trả về danh sách mẫu CV hoàn chỉnh theo chuyên ngành.
+     * Hỗ trợ filter theo industry (khớp với templateId / category).
+     * Complexity: O(n) với n = tổng số mẫu.
+     * @param {string|null} industry - Tên ngành (IT, Marketing, Design, Finance, AI…)
+     * @returns {Array<object>}
+     */
+    getSampleCvData(industry = null) {
+        const SAMPLE_CV_DATA = require('../constant/sampleCvData');
+
+        if (!industry) {
+            return SAMPLE_CV_DATA;
+        }
+
+        const keyword = industry.toLowerCase();
+        return SAMPLE_CV_DATA.filter(sample => {
+            const tid = (sample.templateId || '').toLowerCase();
+            const title = ((sample.cvData && sample.cvData.personal && sample.cvData.personal.jobTitle) || '').toLowerCase();
+            return tid.includes(keyword) || title.includes(keyword);
+        });
+    }
+
+    /**
      * Khởi tạo quá trình gọi tới LLM để sinh nội dung gợi ý chuyên nghiệp
      * @param {object} payload - { industry, section, currentText, keyword }
      * @returns {Promise<Array<string>>}
@@ -295,9 +317,36 @@ BẮT BUỘC chỉ trả về bằng JSON nguyên gốc theo đúng Document Sch
         // Luôn lấy bản nháp từ DB để có version + cache info chính xác nhất
         const cvBuilder = await CvBuilderRepository.findByUserId(userId);
         if (!cvBuilder) {
-            const error = new Error('Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.');
-            error.status = HTTP_STATUS.NOT_FOUND;
-            throw error;
+            if (!payload.cvData) {
+                const error = new Error('Không tìm thấy bản CV đang soạn. Vui lòng lưu CV trước khi xuất PDF.');
+                error.status = HTTP_STATUS.NOT_FOUND;
+                throw error;
+            }
+
+            console.log('[ExportCV] Không có bản nháp trong DB — render từ payload trực tiếp.');
+
+            const cvData = payload.cvData;
+            const themeConfig = payload.themeConfig || { primaryColor: '#000000', fontFamily: 'Inter', layoutMode: '1-column' };
+            const columnLayout = payload.columnLayout || {
+                left: ['profile', 'contact', 'about', 'skills'],
+                right: ['experience', 'education', 'projects', 'awards']
+            };
+            const templateId = payload.templateId || null;
+
+            let ejsPath = null;
+            if (templateId) {
+                const template = await CvTemplateRepository.findActiveById(templateId);
+                if (template && template.ejsPath) ejsPath = template.ejsPath;
+            }
+
+            const PdfExportService = require('../utils/PdfExportService');
+            try {
+                const pdfBuffer = await PdfExportService.generatePdf(cvData, themeConfig, columnLayout, ejsPath);
+                return { type: 'buffer', buffer: pdfBuffer };
+            } catch (err) {
+                console.error('[Export CV Pipeline Error — no draft]:', err);
+                throw new Error('Đã xảy ra lỗi trong quá trình kết xuất PDF. Vui lòng thử lại.');
+            }
         }
 
         // ── Cache Hit: version khớp → trả URL Cloudinary (tải nhanh, không tốn CPU) ──

@@ -444,9 +444,32 @@ class AuthService {
                 return {
                     success: true,
                     userId: company.userId,
-                    companyId: company.companyId
+                    companyId: company.companyId,
+                    companyName: company.name
                 };
             });
+
+            // ── Gửi thông báo tới toàn bộ Admin (fire-and-forget) ──
+            try {
+                const { saveAndSendNotification } = require('./SocketService');
+                const adminIds = await UserRepository.findAllAdminIds();
+
+                if (adminIds.length > 0) {
+                    const notification = {
+                        title: 'Nhà tuyển dụng mới đăng ký',
+                        message: `Công ty "${callbackResult.companyName || `#${callbackResult.companyId}`}" vừa hoàn tất đăng ký tài khoản Employer. Vui lòng xác minh.`,
+                        type: 'NEW_EMPLOYER_REGISTRATION',
+                        companyId: callbackResult.companyId
+                    };
+                    await Promise.all(
+                        adminIds.map(adminId =>
+                            saveAndSendNotification(adminId, 'new_notification', notification)
+                        )
+                    );
+                }
+            } catch (notifErr) {
+                console.error('[AuthService] Admin notification error:', notifErr.message);
+            }
 
             return callbackResult;
         }

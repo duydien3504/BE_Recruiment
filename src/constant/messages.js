@@ -173,6 +173,7 @@ const MESSAGES = {
     THEME_CONFIG_REQUIRED: 'Vui lòng cung cấp dữ liệu cấu hình giao diện (themeConfig).',
     TEMPLATE_ID_REQUIRED: 'Vui lòng cung cấp ID mẫu CV (templateId).',
     GET_TEMPLATES_SUCCESS: 'Lấy danh sách template thành công.',
+    GET_SAMPLE_CV_SUCCESS: 'Lấy danh sách mẫu CV thành công.',
     AI_SUGGESTION_SUCCESS: 'Tạo nội dung AI thành công.',
     AI_SUGGESTION_PAYLOAD_INVALID: 'Thiếu thông tin industry hoặc section.',
     AI_SUGGESTION_TIMEOUT: 'Hệ thống AI đang bận hoặc phản hồi chậm. Vui lòng thử lại sau.',

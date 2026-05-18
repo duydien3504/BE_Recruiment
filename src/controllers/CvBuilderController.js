@@ -176,6 +176,27 @@ class CvBuilderController {
     }
 
     /**
+     * Trả về danh sách mẫu CV hoàn chỉnh theo chuyên ngành.
+     * @route GET /api/v1/cv-builder/samples
+     * @access Public
+     */
+    async getSampleCvData(req, res, next) {
+        try {
+            const { industry } = req.query;
+            const data = CvBuilderService.getSampleCvData(industry || null);
+
+            return res.status(HTTP_STATUS.OK).json({
+                success: true,
+                message: MESSAGES.GET_SAMPLE_CV_SUCCESS,
+                total: data.length,
+                data
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Xuất file CV PDF.
      * - Cache Hit (CV chưa sửa): trả về JSON { downloadUrl } trỏ đến Cloudinary.
      * - Cache Miss (CV đã sửa hoặc lần đầu): render PDF mới và stream về client.

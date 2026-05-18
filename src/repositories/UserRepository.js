@@ -109,6 +109,20 @@ class UserRepository extends BaseRepository {
             }]
         });
     }
+
+    /**
+     * Lấy tất cả userId của Admin đang Active.
+     * Dùng để broadcast thông báo hệ thống tới toàn bộ Admin.
+     * @returns {Promise<string[]>} Mảng userId
+     */
+    async findAllAdminIds() {
+        const { ROLES } = require('../constant/roles');
+        const admins = await this.findAll(
+            { roleId: ROLES.ADMIN, status: 'Active', isDeleted: false },
+            { attributes: ['userId'] }
+        );
+        return admins.map(u => u.userId);
+    }
 }
 
 module.exports = new UserRepository();

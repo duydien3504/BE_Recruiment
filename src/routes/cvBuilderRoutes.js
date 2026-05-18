@@ -221,6 +221,61 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/cv-builder/samples:
+ *   get:
+ *     summary: Lấy danh sách mẫu CV hoàn chỉnh theo chuyên ngành
+ *     tags: [CvBuilder]
+ *     description: |
+ *       Trả về các mẫu CV demo hoàn chỉnh (có templateId, themeConfig, columnLayout và cvData đầy đủ)
+ *       để frontend render preview. Hỗ trợ lọc theo ngành nghề qua query param `industry`.
+ *     parameters:
+ *       - in: query
+ *         name: industry
+ *         schema:
+ *           type: string
+ *           example: "it"
+ *         required: false
+ *         description: Từ khóa lọc ngành (it, marketing, design, finance, ai, …)
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách mẫu CV thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy danh sách mẫu CV thành công."
+ *                 total:
+ *                   type: integer
+ *                   example: 5
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       templateId:
+ *                         type: string
+ *                       themeConfig:
+ *                         type: object
+ *                       columnLayout:
+ *                         type: object
+ *                       cvData:
+ *                         type: object
+ *       500:
+ *         description: Lỗi server nội bộ
+ */
+router.get(
+    '/samples',
+    CvBuilderController.getSampleCvData
+);
+
+/**
+ * @swagger
  * /api/v1/cv-builder/auto-fill:
  *   get:
  *     summary: Tự động lấy & đồng bộ dữ liệu từ hồ sơ

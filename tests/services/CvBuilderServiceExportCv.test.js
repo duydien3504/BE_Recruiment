@@ -121,14 +121,32 @@ describe('CvBuilderService.exportCvDraft', () => {
         expect(PdfCacheWorker.enqueue).toHaveBeenCalledTimes(1);
     });
 
-    // ─── CV không tồn tại → 404 ────────────────────────────────────────────
+    // ─── Không có draft trong DB, payload có cvData → render thẳng từ payload ──
 
-    test('should throw 404 NOT FOUND if cvBuilder draft does not exist', async () => {
+    test('should render PDF from payload when no DB draft exists but payload has cvData', async () => {
+        CvBuilderRepository.findByUserId.mockResolvedValue(null);
+        PdfExportService.generatePdf.mockResolvedValue(MOCK_PDF_BUFFER);
+
+        const result = await CvBuilderService.exportCvDraft(USER_ID, {
+            cvData: { personal: { fullName: 'Test User' } },
+            themeConfig: { primaryColor: '#111111', fontFamily: 'Inter' },
+            templateId: 'modern_it_01'
+        });
+
+        expect(result).toEqual({ type: 'buffer', buffer: MOCK_PDF_BUFFER });
+        expect(PdfExportService.generatePdf).toHaveBeenCalled();
+        // Worker KHÔNG được gọi vì không có record DB để cache
+        expect(PdfCacheWorker.enqueue).not.toHaveBeenCalled();
+    });
+
+    // ─── Không có draft trong DB và không có payload.cvData → 404 ──────────
+
+    test('should throw 404 NOT FOUND if cvBuilder draft does not exist and no payload cvData', async () => {
         CvBuilderRepository.findByUserId.mockResolvedValue(null);
 
-        await expect(CvBuilderService.exportCvDraft(USER_ID)).rejects.toMatchObject({
+        await expect(CvBuilderService.exportCvDraft(USER_ID, {})).rejects.toMatchObject({
             status: HTTP_STATUS.NOT_FOUND,
-            message: 'Không tìm thấy bản CV đang soạn nào trong hệ thống, hãy khởi tạo trước.'
+            message: 'Không tìm thấy bản CV đang soạn. Vui lòng lưu CV trước khi xuất PDF.'
         });
 
         expect(PdfExportService.generatePdf).not.toHaveBeenCalled();

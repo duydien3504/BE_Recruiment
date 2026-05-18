@@ -144,6 +144,53 @@ class PaymentService {
                 }
             });
 
+            // ── Gửi thông báo tới toàn bộ Admin (fire-and-forget, không block) ──
+            try {
+                const { saveAndSendNotification } = require('./SocketService');
+                const adminIds = await UserRepository.findAllAdminIds();
+
+                if (adminIds.length > 0) {
+                    let adminNotification = null;
+
+                    if (transaction.transactionType === TRANSACTION_TYPES.JOB_POST) {
+                        const job = await JobPostRepository.findById(transaction.jobPostId);
+                        adminNotification = {
+                            title: 'Tin tuyển dụng mới vừa được đăng',
+                            message: `Tin "${job ? job.title : `#${transaction.jobPostId}`}" vừa được thanh toán và kích hoạt. Vui lòng kiểm duyệt.`,
+                            type: 'NEW_JOB_POST',
+                            jobPostId: transaction.jobPostId
+                        };
+                    } else if (transaction.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION) {
+                        const company = await CompanyRepository.findById(transaction.companyId);
+                        adminNotification = {
+                            title: 'Nhà tuyển dụng mới đăng ký',
+                            message: `Công ty "${company ? company.name : `#${transaction.companyId}`}" vừa hoàn tất đăng ký tài khoản Employer. Vui lòng xác minh.`,
+                            type: 'NEW_EMPLOYER_REGISTRATION',
+                            companyId: transaction.companyId
+                        };
+                    } else if (transaction.transactionType === TRANSACTION_TYPES.UPGRADE_EMPLOYER) {
+                        const company = await CompanyRepository.findById(transaction.companyId);
+                        adminNotification = {
+                            title: 'Tài khoản nâng cấp Employer thành công',
+                            message: `Công ty "${company ? company.name : `#${transaction.companyId}`}" vừa nâng cấp lên tài khoản Employer. Vui lòng xác minh thông tin.`,
+                            type: 'UPGRADE_EMPLOYER',
+                            companyId: transaction.companyId
+                        };
+                    }
+
+                    if (adminNotification) {
+                        await Promise.all(
+                            adminIds.map(adminId =>
+                                saveAndSendNotification(adminId, 'new_notification', adminNotification)
+                            )
+                        );
+                    }
+                }
+            } catch (notifErr) {
+                // Không block luồng chính nếu notification lỗi
+                console.error('[PaymentService] Admin notification error:', notifErr.message);
+            }
+
             return {
                 success: true,
                 message: transaction.transactionType === TRANSACTION_TYPES.ACCOUNT_REGISTRATION

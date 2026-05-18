@@ -9,8 +9,8 @@ class NotificationController {
      */
     async getMyNotifications(req, res, next) {
         try {
-            const userId = req.user.userId;
-            const notifications = await NotificationService.getMyNotifications(userId, req.query);
+            const { userId, role } = req.user;
+            const notifications = await NotificationService.getMyNotifications(userId, req.query, role);
 
             return res.status(HTTP_STATUS.OK).json({
                 message: MESSAGES.GET_NOTIFICATIONS_SUCCESS,
@@ -62,8 +62,8 @@ class NotificationController {
      */
     async countUnread(req, res, next) {
         try {
-            const userId = req.user.userId;
-            const count = await NotificationService.countUnread(userId);
+            const { userId, role } = req.user;
+            const count = await NotificationService.countUnread(userId, role);
 
             return res.status(HTTP_STATUS.OK).json({
                 message: MESSAGES.GET_UNREAD_COUNT_SUCCESS,
