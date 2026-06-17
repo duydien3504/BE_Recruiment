@@ -1,0 +1,230 @@
+@startuml
+
+' Entities
+entity "Role" {
+  +roleId : BIGINT
+  --
+  roleName : STRING
+}
+
+entity "User" {
+  +userId : UUID
+  --
+  email : STRING
+  password : STRING
+  fullName : STRING
+  phoneNumber : STRING
+  address : TEXT
+  avatarUrl : STRING
+  bio : TEXT
+  roleId : BIGINT
+  status : ENUM
+  isDeleted : BOOLEAN
+}
+
+entity "Otp" {
+  +otpId : BIGINT
+  --
+  userId : UUID
+  code : STRING
+  type : ENUM
+  expiredAt : DATE
+  isUsed : BOOLEAN
+}
+
+entity "Company" {
+  +companyId : UUID
+  --
+  userId : UUID
+  name : STRING
+  taxCode : STRING
+  logoUrl : STRING
+  backgroundUrl : STRING
+  websiteUrl : STRING
+  scale : STRING
+  description : TEXT
+  addressDetail : TEXT
+  phoneNumber : STRING
+  status : ENUM
+  isDeleted : BOOLEAN
+}
+
+entity "Category" {
+  +categoryId : BIGINT
+  --
+  name : STRING
+  isDeleted : BOOLEAN
+}
+
+entity "Location" {
+  +locationId : BIGINT
+  --
+  name : STRING
+}
+
+entity "Level" {
+  +levelId : BIGINT
+  --
+  name : STRING
+}
+
+entity "Skill" {
+  +skillId : BIGINT
+  --
+  name : STRING
+}
+
+entity "JobPost" {
+  +jobPostId : BIGINT
+  --
+  companyId : UUID
+  categoryId : BIGINT
+  locationId : BIGINT
+  levelId : BIGINT
+  title : STRING
+  description : TEXT
+  requirements : TEXT
+  salaryMin : DECIMAL
+  salaryMax : DECIMAL
+  status : ENUM
+  expiredAt : DATE
+  editCount : INTEGER
+  rejectionReason : TEXT
+  isDeleted : BOOLEAN
+}
+
+entity "JobSkill" {
+  +jobPostId : BIGINT
+  +skillId : BIGINT
+}
+
+entity "Resume" {
+  +resumesId : BIGINT
+  --
+  userId : UUID
+  fileUrl : STRING
+  fileName : STRING
+  isMain : BOOLEAN
+  isDeleted : BOOLEAN
+}
+
+entity "UserSkill" {
+  +userId : UUID
+  +skillId : BIGINT
+}
+
+entity "Application" {
+  +applicationId : BIGINT
+  --
+  jobPostId : BIGINT
+  userId : UUID
+  resumesId : BIGINT
+  coverLetter : TEXT
+  status : ENUM
+  employerNote : TEXT
+}
+
+entity "Interview" {
+  +interviewId : BIGINT
+  --
+  applicationId : BIGINT
+  interviewTime : DATE
+  type : ENUM
+  location : TEXT
+  meetingLink : STRING
+  note : TEXT
+  status : ENUM
+  isDeleted : BOOLEAN
+}
+
+entity "SavedJob" {
+  +userId : UUID
+  +jobPostId : BIGINT
+}
+
+entity "Follow" {
+  +userId : UUID
+  +companyId : UUID
+}
+
+entity "Notification" {
+  +notificationId : BIGINT
+  --
+  userId : UUID
+  title : STRING
+  message : TEXT
+  type : STRING
+  isRead : BOOLEAN
+}
+
+entity "Conversation" {
+  +conversationsId : BIGINT
+  --
+  userId : UUID
+  companyId : UUID
+  lastMessageAt : DATE
+}
+
+entity "Message" {
+  +messageId : BIGINT
+  --
+  conversationsId : BIGINT
+  senderId : UUID
+  content : TEXT
+  isRead : BOOLEAN
+  isDeleted : BOOLEAN
+}
+
+entity "Transaction" {
+  +transactionId : BIGINT
+  --
+  companyId : UUID
+  jobPostId : BIGINT
+  amount : DECIMAL
+  paymentMethod : STRING
+  status : ENUM
+}
+
+' Relationships
+
+Role "1" -- "0..*" User
+User "1" -- "0..1" Company
+User "1" -- "0..*" Otp
+
+Company "1" -- "0..*" JobPost
+Category "1" -- "0..*" JobPost
+Location "1" -- "0..*" JobPost
+Level "1" -- "0..*" JobPost
+
+JobPost "1" -- "0..*" JobSkill
+Skill "1" -- "0..*" JobSkill
+
+User "1" -- "0..*" UserSkill
+Skill "1" -- "0..*" UserSkill
+
+User "1" -- "0..*" Resume
+
+User "1" -- "0..*" Application
+JobPost "1" -- "0..*" Application
+Resume "1" -- "0..*" Application
+
+Application "1" -- "0..1" Interview
+
+User "1" -- "0..*" SavedJob
+JobPost "1" -- "0..*" SavedJob
+
+User "1" -- "0..*" Follow
+Company "1" -- "0..*" Follow
+
+User "1" -- "0..*" Notification
+
+User "1" -- "0..*" Conversation
+Company "1" -- "0..*" Conversation
+
+Conversation "1" -- "0..*" Message
+User "1" -- "0..*" Message
+
+Company "1" -- "0..*" Transaction
+JobPost "1" -- "0..*" Transaction
+
+@enduml
