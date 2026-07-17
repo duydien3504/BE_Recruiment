@@ -1,11 +1,21 @@
 const LocationRepository = require('../repositories/LocationRepository');
+const redisClient = require('../config/redis');
 
 class LocationService {
     async getAllLocations() {
-        return await LocationRepository.findAllActive({
+        const cacheKey = 'data:locations:all';
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
+        const locations = await LocationRepository.findAllActive({
             attributes: ['locationId', 'name'],
             order: [['name', 'ASC']]
         });
+
+        await redisClient.set(cacheKey, JSON.stringify(locations), 'EX', 86400); // Cache 24 hours
+        return locations;
     }
 
     async createLocation(data) {
@@ -20,7 +30,9 @@ class LocationService {
             throw error;
         }
 
-        return await LocationRepository.create({ name });
+        const result = await LocationRepository.create({ name });
+        await redisClient.del('data:locations:all');
+        return result;
     }
 
     async updateLocation(id, data) {
@@ -44,7 +56,9 @@ class LocationService {
             }
         }
 
-        return await LocationRepository.update(id, { name });
+        const result = await LocationRepository.update(id, { name });
+        await redisClient.del('data:locations:all');
+        return result;
     }
 
     async deleteLocation(id) {
@@ -59,7 +73,9 @@ class LocationService {
         }
 
         // Hard delete likely as Location doesn't have isDeleted column based on model
-        return await LocationRepository.delete(id);
+        const result = await LocationRepository.delete(id);
+        await redisClient.del('data:locations:all');
+        return result;
     }
 }
 

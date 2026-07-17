@@ -1,5 +1,6 @@
 const jwtHelper = require('../utils/jwtHelper');
 const { UserRepository } = require('../repositories');
+const redisClient = require('../config/redis');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 
@@ -28,27 +29,39 @@ const authenticateToken = async (req, res, next) => {
         }
 
         const decoded = jwtHelper.verifyAccessToken(token);
+        const cacheKey = `user:auth:${decoded.userId}`;
+        let userData;
 
-        const user = await UserRepository.findById(decoded.userId, {
-            include: [{
-                model: require('../models').Role,
-                as: 'role',
-                attributes: ['roleName']
-            }]
-        });
+        const cachedUser = await redisClient.get(cacheKey);
+        if (cachedUser) {
+            userData = JSON.parse(cachedUser);
+        } else {
+            const user = await UserRepository.findById(decoded.userId, {
+                include: [{
+                    model: require('../models').Role,
+                    as: 'role',
+                    attributes: ['roleName']
+                }]
+            });
 
-        if (!user) {
-            const error = new Error(MESSAGES.USER_NOT_FOUND);
-            error.status = HTTP_STATUS.UNAUTHORIZED;
-            throw error;
+            if (!user) {
+                const error = new Error(MESSAGES.USER_NOT_FOUND);
+                error.status = HTTP_STATUS.UNAUTHORIZED;
+                throw error;
+            }
+
+            userData = {
+                userId: user.userId,
+                email: user.email,
+                role: user.role ? user.role.roleName : null,
+                fullName: user.fullName
+            };
+            
+            // Cache for 15 minutes (900 seconds)
+            await redisClient.set(cacheKey, JSON.stringify(userData), 'EX', 900);
         }
 
-        req.user = {
-            userId: user.userId,
-            email: user.email,
-            role: user.role ? user.role.roleName : null,
-            fullName: user.fullName
-        };
+        req.user = userData;
 
         next();
     } catch (error) {
@@ -74,21 +87,35 @@ const optionalAuthenticateToken = async (req, res, next) => {
         if (!token) return next();
 
         const decoded = jwtHelper.verifyAccessToken(token);
-        const user = await UserRepository.findById(decoded.userId, {
-            include: [{
-                model: require('../models').Role,
-                as: 'role',
-                attributes: ['roleName']
-            }]
-        });
+        const cacheKey = `user:auth:${decoded.userId}`;
+        let userData;
 
-        if (user) {
-            req.user = {
-                userId: user.userId,
-                email: user.email,
-                role: user.role ? user.role.roleName : null,
-                fullName: user.fullName
-            };
+        const cachedUser = await redisClient.get(cacheKey);
+        if (cachedUser) {
+            userData = JSON.parse(cachedUser);
+        } else {
+            const user = await UserRepository.findById(decoded.userId, {
+                include: [{
+                    model: require('../models').Role,
+                    as: 'role',
+                    attributes: ['roleName']
+                }]
+            });
+
+            if (user) {
+                userData = {
+                    userId: user.userId,
+                    email: user.email,
+                    role: user.role ? user.role.roleName : null,
+                    fullName: user.fullName
+                };
+                // Cache for 15 minutes (900 seconds)
+                await redisClient.set(cacheKey, JSON.stringify(userData), 'EX', 900);
+            }
+        }
+
+        if (userData) {
+            req.user = userData;
         }
         next();
     } catch (error) {

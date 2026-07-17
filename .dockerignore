@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # OS files
 .DS_Store
@@ -40,14 +41,14 @@ jest.config.js
 docs/
 diagram/
 *.md
+!README.md
 screenshots/
-COMPLETE_BuildCV.md
-CreateCV.md
-CreateCVEndpoint.md
-RULE.md
+Questions/
 
 # Docker
 docker-compose*.yml
+Dockerfile
+.dockerignore
 nginx/
 
 # Temp

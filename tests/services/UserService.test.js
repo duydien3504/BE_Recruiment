@@ -139,7 +139,7 @@ describe('UserService', () => {
             UserRepository.findById.mockResolvedValue(mockUser);
             UserRepository.update.mockResolvedValue({});
             const result = await UserService.changePassword('uuid-123', { oldPassword: 'OldPassword123', newPassword: 'NewPassword456' });
-            expect(bcrypt.hash).toHaveBeenCalledWith('NewPassword456', 14);
+            expect(bcrypt.hash).toHaveBeenCalledWith('NewPassword456', 10);
             expect(result).toEqual({ success: true });
         });
 

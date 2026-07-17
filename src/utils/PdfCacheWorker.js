@@ -16,8 +16,8 @@ class PdfCacheWorker {
         /** Số lần thử tối đa (lần đầu + 3 lần retry = tổng cộng 4 lần gọi) */
         this.MAX_RETRIES = 3;
 
-        /** Thời gian chờ giữa mỗi lần retry (ms): 5s → 10s → 20s */
-        this.RETRY_DELAYS = [5000, 10000, 20000];
+        /** Thời gian chờ giữa mỗi lần retry (ms): 30s → 1 phút (60s) → 2 phút (120s) */
+        this.RETRY_DELAYS = [60000, 120000, 180000];
     }
 
     /**
@@ -54,7 +54,7 @@ class PdfCacheWorker {
 
             // Upload thành công → cập nhật DB cache
             await CvBuilderRepository.updatePdfCache(cvBuilderId, pdfUrl, version);
-            console.log(`[PdfCacheWorker] ✅ Upload thành công & cache đã cập nhật (version=${version}).`);
+            console.log(`[PdfCacheWorker] Upload thành công & cache đã cập nhật (version=${version}).`);
 
             // ── Memory Leak Prevention: giải phóng tham chiếu Buffer ──
             pdfBuffer = null;
@@ -63,7 +63,7 @@ class PdfCacheWorker {
             if (retryCount < this.MAX_RETRIES) {
                 const delay = this.RETRY_DELAYS[retryCount] || 20000;
                 console.warn(
-                    `[PdfCacheWorker] ⚠️  Upload thất bại (attempt ${retryCount + 1}/${this.MAX_RETRIES + 1}): ${error.message}. ` +
+                    `[PdfCacheWorker] Upload thất bại (attempt ${retryCount + 1}/${this.MAX_RETRIES + 1}): ${error.message}. ` +
                     `Thử lại sau ${delay / 1000}s...`
                 );
 
@@ -74,7 +74,7 @@ class PdfCacheWorker {
 
             // ── Hết lượt retry: báo log mức cao cho Admin ──
             console.error(
-                `[PdfCacheWorker] ❌ FAILED sau ${this.MAX_RETRIES + 1} lần thử. ` +
+                `[PdfCacheWorker] FAILED sau ${this.MAX_RETRIES + 1} lần thử. ` +
                 `userId=${userId}, cvBuilderId=${cvBuilderId}, version=${version}. ` +
                 `Lỗi cuối: ${error.message}`
             );

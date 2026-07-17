@@ -1,4 +1,5 @@
 const LevelRepository = require('../repositories/LevelRepository');
+const redisClient = require('../config/redis');
 const MESSAGES = require('../constant/messages');
 const HTTP_STATUS = require('../constant/statusCode');
 
@@ -9,13 +10,22 @@ class LevelService {
      * @returns {Promise<Array>} List of levels
      */
     async getAllLevels() {
+        const cacheKey = 'data:levels:all';
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
         const levels = await LevelRepository.findAllActive();
 
-        return levels.map(level => ({
+        const formattedLevels = levels.map(level => ({
             levelId: level.levelId,
             name: level.name,
             createdAt: level.created_at || level.createdAt
         }));
+
+        await redisClient.set(cacheKey, JSON.stringify(formattedLevels), 'EX', 86400); // Cache 24 hours
+        return formattedLevels;
     }
 
     /**
@@ -59,11 +69,13 @@ class LevelService {
 
         const newLevel = await LevelRepository.create({ name });
 
-        return {
+        const result = {
             levelId: newLevel.levelId,
             name: newLevel.name,
             createdAt: newLevel.created_at || newLevel.createdAt
         };
+        await redisClient.del('data:levels:all');
+        return result;
     }
 
     /**
@@ -98,11 +110,13 @@ class LevelService {
 
         const updatedLevel = await LevelRepository.findById(levelId);
 
-        return {
+        const result = {
             levelId: updatedLevel.levelId,
             name: updatedLevel.name,
             createdAt: updatedLevel.created_at || updatedLevel.createdAt
         };
+        await redisClient.del('data:levels:all');
+        return result;
     }
 
     /**
@@ -121,6 +135,7 @@ class LevelService {
         }
 
         await LevelRepository.delete(levelId);
+        await redisClient.del('data:levels:all');
     }
 }
 

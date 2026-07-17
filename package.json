@@ -5,16 +5,21 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:prod": "pm2-runtime start ecosystem.config.js --env production",
     "dev": "nodemon src/server.js",
     "test": "jest --passWithNoTests",
     "db:sync": "node src/scripts/syncDatabase.js",
     "tunnel": "nport 8080 -s api-recruitment",
-    "dev:tunnel": "concurrently \"npm:dev\" \"npm:tunnel\""
+    "dev:tunnel": "concurrently \"npm:dev\" \"npm:tunnel\"",
+    "simulate:info": "node src/scripts/get_employer_info.js",
+    "simulate:worker": "node src/scripts/notification_worker.js",
+    "simulate:apply": "node src/scripts/simulate_apply.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^2.0.1",
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
@@ -23,6 +28,7 @@
     "dotenv": "^17.2.3",
     "ejs": "^5.0.1",
     "express": "^5.2.1",
+    "ioredis": "^5.11.1",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
@@ -32,9 +38,11 @@
     "pdf-parse": "^1.1.1",
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
+    "pm2": "^7.0.3",
     "puppeteer": "^24.43.0",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "streamifier": "^0.1.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

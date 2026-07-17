@@ -3,6 +3,30 @@ const ejs = require('ejs');
 const path = require('path');
 
 class PdfExportService {
+    constructor() {
+        this.browser = null;
+    }
+
+    async getBrowser() {
+        if (!this.browser) {
+            this.browser = await puppeteer.launch({
+                headless: 'new',
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu'
+                ]
+            });
+
+            this.browser.on('disconnected', () => {
+                console.warn('[PdfExportService] Puppeteer browser disconnected. Will re-launch on next request.');
+                this.browser = null;
+            });
+        }
+        return this.browser;
+    }
+
     /**
      * Render HTML từ file EJS được chỉ định, sau đó xuất ra PDF Buffer bằng Puppeteer.
      * ejsPath được cung cấp từ Controller/Service sau khi tra cứu bảng cv_templates,
@@ -32,16 +56,8 @@ class PdfExportService {
         // Render HTML từ file EJS đã xác định
         const htmlContent = await this.renderHtml(cvData, themeConfig, columnLayout, ejsPath);
 
-        // Launch Puppeteer headless browser
-        const browser = await puppeteer.launch({
-            headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage', // Ngăn crash RAM trên server nhỏ
-                '--disable-gpu'
-            ]
-        });
+        // Sử dụng Singleton Browser
+        const browser = await this.getBrowser();
 
         const page = await browser.newPage();
 
@@ -63,7 +79,7 @@ class PdfExportService {
             margin: { top: '0', right: '0', bottom: '0', left: '0' }
         });
 
-        await browser.close();
+        await page.close();
 
         return pdfBuffer;
     }

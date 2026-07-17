@@ -59,7 +59,7 @@ const sequelize = new Sequelize(
         dialectOptions,
         logging: false, // Tắt log query mặc định của Sequelize cho gọn
         pool: {
-            max: 5,
+            max: 30,
             min: 0,
             acquire: 30000,
             idle: 10000

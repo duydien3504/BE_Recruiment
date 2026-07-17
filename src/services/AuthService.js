@@ -22,7 +22,7 @@ const {
     MOMO_RESULT_CODES
 } = require('../constant/transactionConstants');
 
-const BCRYPT_COST = 14;
+const BCRYPT_COST = 10;
 const ACCOUNT_REGISTRATION_AMOUNT = 500000;
 const USER_STATUS_ACTIVE = 'Active';
 const USER_STATUS_INACTIVE = 'Inactive';
@@ -276,7 +276,7 @@ class AuthService {
         }
 
         const newPassword = generatePassword(12);
-        const hashedPassword = await bcrypt.hash(newPassword, 14);
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_COST);
 
         await UserRepository.update(user.userId, { password: hashedPassword });
         await OtpRepository.markAsUsed(otpRecord.otpId);

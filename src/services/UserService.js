@@ -131,8 +131,8 @@ class UserService {
             throw error;
         }
 
-        // Hash new password with cost 14 (theo RULE.md)
-        const hashedPassword = await bcrypt.hash(newPassword, 14);
+        // Hash new password with cost 10
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         // Update password
         await UserRepository.update(userId, { password: hashedPassword });

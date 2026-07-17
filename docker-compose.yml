@@ -3,67 +3,42 @@ version: '3.8'
 services:
   # Backend Application
   backend:
+    image: ${DOCKER_HUB_USERNAME:-backend-app}:latest
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
     container_name: recruitment-backend
     restart: unless-stopped
     ports:
       - "${PORT:-8080}:8080"
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=${PORT:-8080}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - ACCESS_TOKEN_EXPIRATION=${ACCESS_TOKEN_EXPIRATION}
-      - REFRESH_TOKEN_EXPIRATION=${REFRESH_TOKEN_EXPIRATION}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USER=${EMAIL_USER}
-      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
-      - vnp_TmnCode=${vnp_TmnCode}
-      - vnp_HashSecret=${vnp_HashSecret}
-      - vnp_Url=${vnp_Url}
-      - vnp_Return_Url=${vnp_Return_Url}
-      - API_KEY=${API_KEY}
-      - API_URL=${API_URL}
-      - MODEL=${MODEL}
-    volumes:
-      - ./src:/app/src
-      - ./tests:/app/tests
-      - ./node_modules:/app/node_modules
+    env_file:
+      - .env
+    # Bỏ comment 3 dòng dưới nếu muốn hot-reload code ở môi trường development
+    # volumes:
+    #   - ./src:/app/src
+    #   - ./tests:/app/tests
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - recruitment-network
     healthcheck:
-      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-  # MySQL Database (for local development only)
+  # MySQL Database (For Local Development)
   mysql:
     image: mysql:8.0
     container_name: recruitment-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${DB_NAME:-recruitment_db}
-      MYSQL_USER: ${DB_USER:-recruitment_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-userpassword}
+      MYSQL_DATABASE: ${DB_NAME:-neondb}
+      MYSQL_USER: ${DB_USER:-neondb_owner}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-npg_qlHT8XKfeNJ1}
     ports:
       - "3306:3306"
     volumes:
@@ -72,13 +47,13 @@ services:
     networks:
       - recruitment-network
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-rootpassword}" ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-rootpassword}"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 30s
 
-  # Redis (for caching - optional)
+  # Redis (Optional Caching Layer)
   redis:
     image: redis:7-alpine
     container_name: recruitment-redis
@@ -90,12 +65,12 @@ services:
     networks:
       - recruitment-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # Nginx (reverse proxy - optional)
+  # Nginx Reverse Proxy (Optional)
   nginx:
     image: nginx:alpine
     container_name: recruitment-nginx

@@ -3,10 +3,19 @@ let io;
 
 const initSocket = (server) => {
     const { Server } = require('socket.io');
+    const allowedOrigins = [
+        'https://recruit.hugonef.id.vn',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:5173'
+    ];
+
     io = new Server(server, {
         cors: {
-            origin: "*", // Config theo domain frontend sau này
-            methods: ["GET", "POST"]
+            origin: allowedOrigins,
+            methods: ["GET", "POST"],
+            credentials: true
         }
     });
 

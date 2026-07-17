@@ -1,23 +1,58 @@
-src/config/secret
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Coverage directory
+coverage
+*.lcov
+.nyc_output
+
+# Environment variables
 .env
-API_DESIGN_PLAN.md
-node_modules
-docs
-diagram
-DEPLOYMENT.md
-RENDER_DEPLOY.md
-RENDER_FIX_SUMMARY.md
-DEPLOYMENT.md
-RENDER_SSL_FIX.md
-SWAGGER_CORS_FIX.md
-EXTRA_TASK_CANDIDATE.md
-EXTRA_TASK_EMPLOYER.md
-SPECIAL_FUNC.md
+.env.*
+!.env.example
 
-CreateCV.md
-CreateCVEndpoint.md
-ExtendDB.md
-nginx
+# Build output
+dist/
+build/
+out/
 
-RULE.md
-COMPLETE_BuildCV.md
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Documentation & Custom Project Files
+docs/
+diagram/
+*.md
+!README.md
+Questions/
+src/config/secret
+nginx/
+
+# Temp
+tmp/
+temp/

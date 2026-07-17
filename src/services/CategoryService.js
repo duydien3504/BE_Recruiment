@@ -1,11 +1,21 @@
 const CategoryRepository = require('../repositories/CategoryRepository');
+const redisClient = require('../config/redis');
 
 class CategoryService {
     async getAllCategories() {
-        return await CategoryRepository.findAllActive({
+        const cacheKey = 'data:categories:all';
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
+        const categories = await CategoryRepository.findAllActive({
             attributes: ['categoryId', 'name'],
             order: [['name', 'ASC']]
         });
+
+        await redisClient.set(cacheKey, JSON.stringify(categories), 'EX', 86400); // Cache 24 hours
+        return categories;
     }
 
     async getCategoryDetail(id) {
@@ -34,7 +44,9 @@ class CategoryService {
             throw error;
         }
 
-        return await CategoryRepository.create({ name });
+        const result = await CategoryRepository.create({ name });
+        await redisClient.del('data:categories:all');
+        return result;
     }
 
     async updateCategory(id, data) {
@@ -58,7 +70,9 @@ class CategoryService {
             }
         }
 
-        return await CategoryRepository.update(id, { name });
+        const result = await CategoryRepository.update(id, { name });
+        await redisClient.del('data:categories:all');
+        return result;
     }
 
     async deleteCategory(id) {
@@ -72,7 +86,9 @@ class CategoryService {
             throw error;
         }
 
-        return await CategoryRepository.update(id, { isDeleted: true });
+        const result = await CategoryRepository.update(id, { isDeleted: true });
+        await redisClient.del('data:categories:all');
+        return result;
     }
 }
 

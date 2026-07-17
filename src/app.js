@@ -14,10 +14,34 @@ const app = express();
 app.set('trust proxy', 1);
 
 // Middlewares
-app.use(cors());
+const allowedOrigins = [
+    'https://recruit.hugonef.id.vn',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173'
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Cho phép request không có origin (như Postman, cURL, v.v.) hoặc origin nằm trong whitelist
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev')); // Logging request
+if (process.env.NODE_ENV === 'production') {
+    app.use(morgan('combined', {
+        skip: function (req, res) { return res.statusCode < 400 }
+    }));
+} else {
+    app.use(morgan('dev'));
+}
 
 // Serve static files (thumbnails, assets) from /src/public folder
 // Access: http://localhost:PORT/static/thumbnails/thumb_xxx.png
@@ -80,6 +104,32 @@ app.use('/api/v1/levels', levelRoutes);
 
 const cvBuilderRoutes = require('./routes/cvBuilderRoutes');
 app.use('/api/v1/cv-builder', cvBuilderRoutes);
+
+// ─── INTERNAL: Simulation Worker Relay Endpoint ───────────────
+// Dùng cho Worker giả lập RabbitMQ (simulate_apply.js) để relay
+// Socket.io tới Employer. Bảo vệ bằng secret key nội bộ.
+// KHÔNG dùng cho production client.
+app.post('/internal/notify', (req, res) => {
+    const secret = req.headers['x-internal-secret'];
+    if (secret !== (process.env.INTERNAL_WORKER_SECRET || 'simulation-internal-secret-2026')) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const { targetUserId, event, data } = req.body;
+    if (!targetUserId || !event) {
+        return res.status(400).json({ error: 'Thiếu targetUserId hoặc event' });
+    }
+
+    try {
+        const { sendNotificationToUser } = require('./services/SocketService');
+        sendNotificationToUser(targetUserId, event, data);
+        console.log(`[Internal] Relayed Socket.io → user_${targetUserId} [${event}]`);
+        return res.json({ success: true });
+    } catch (err) {
+        console.error('[Internal] Socket relay lỗi:', err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
 
 // Base Route
 app.get('/', (req, res) => {

@@ -1,34 +1,36 @@
 # Stage 1: Build dependencies
-# Sử dụng node:20-slim (Debian) thay vì Alpine để đảm bảo tương thích tốt nhất với Puppeteer và các thư viện native
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Cài đặt build tools cho các module native như bcrypt
-RUN apt-get update && apt-get install -y \
+# Cài đặt build tools cho các module native (vd: bcrypt)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
+# Copy cấu hình package
 COPY package*.json ./
 
-# Cài đặt production dependencies (npm ci giúp cài đúng version đồng bộ từ package-lock.json)
+# Ngăn Puppeteer tải Chromium trong lúc build (giảm dung lượng & thời gian)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Cài đặt production dependencies
 RUN npm ci --only=production
 
 
 # Stage 2: Production image
 FROM node:20-slim
 
-# Thiết lập Timezone (tùy chọn, hữu ích cho logs)
+# Thiết lập Timezone
 ENV TZ=Asia/Ho_Chi_Minh
 
-# Cài đặt các thư viện hệ thống cần thiết cho Puppeteer (Chromium) và Tini (xử lý tín hiệu boot)
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    ca-certificates \
+# Cài đặt các thư viện hệ thống cần thiết cho Puppeteer & Chromium
+# Cài Chromium trực tiếp qua apt-get để ổn định và nhẹ hơn trên Docker
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -64,34 +66,39 @@ RUN apt-get update && apt-get install -y \
     lsb-release \
     xdg-utils \
     tini \
-    --no-install-recommends \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy node_modules và package files từ builder stage
+# Copy node_modules từ stage builder
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+COPY package*.json ./
 
 # Copy mã nguồn ứng dụng (trừ các file trong .dockerignore)
-# Note: DataTest/seedData.js và src/utils/templates/... sẽ được copy qua bước này
 COPY . .
 
-# Biến môi trường quan trọng cho Railway và Puppeteer
+# Cài đặt pm2 toàn cục để chạy runtime trong container
+RUN npm install -g pm2
+
+# Biến môi trường hệ thống
 ENV NODE_ENV=production
 ENV PORT=8080
-# Ngăn Puppeteer tải Chromium khi chạy (nó đã được cài đặt qua npm install ở stage 1)
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
 
-# Expose port (Railway sẽ dùng biến PORT này)
+# Cấu hình Puppeteer sử dụng Chromium đã cài đặt sẵn ở hệ điều hành
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Mở port
 EXPOSE 8080
 
-# Bảo mật: Chạy dưới quyền user node thay vì root
+# Chạy app dưới quyền user node thay vì root (tăng tính bảo mật)
 RUN chown -R node:node /app
 USER node
 
 # Sử dụng tini để forward các tín hiệu SIGTERM/SIGINT giúp container tắt an toàn
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Khởi chạy server
-CMD ["node", "src/server.js"]
+# Khởi chạy server sử dụng pm2-runtime
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]

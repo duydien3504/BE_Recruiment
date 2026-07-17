@@ -1,11 +1,21 @@
 const SkillRepository = require('../repositories/SkillRepository');
+const redisClient = require('../config/redis');
 
 class SkillService {
     async getAllSkills() {
-        return await SkillRepository.findAllActive({
+        const cacheKey = 'data:skills:all';
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
+        const skills = await SkillRepository.findAllActive({
             attributes: ['skillId', 'name'],
             order: [['name', 'ASC']]
         });
+
+        await redisClient.set(cacheKey, JSON.stringify(skills), 'EX', 86400); // Cache 24 hours
+        return skills;
     }
 
     async createSkill(data) {
@@ -20,7 +30,9 @@ class SkillService {
             throw error;
         }
 
-        return await SkillRepository.create({ name });
+        const result = await SkillRepository.create({ name });
+        await redisClient.del('data:skills:all');
+        return result;
     }
 
     async updateSkill(id, data) {
@@ -44,7 +56,9 @@ class SkillService {
             }
         }
 
-        return await SkillRepository.update(id, { name });
+        const result = await SkillRepository.update(id, { name });
+        await redisClient.del('data:skills:all');
+        return result;
     }
 
     async deleteSkill(id) {
@@ -59,7 +73,9 @@ class SkillService {
         }
 
         // Hard delete likely as Skill doesn't have isDeleted column based on model
-        return await SkillRepository.delete(id);
+        const result = await SkillRepository.delete(id);
+        await redisClient.del('data:skills:all');
+        return result;
     }
 }
 
