@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'backend-api',
       script: 'src/server.js',
-      instances: 'max', // Chạy trên tất cả các core CPU
+      instances: 1,
       exec_mode: 'cluster',
       env: {
         NODE_ENV: 'development'
