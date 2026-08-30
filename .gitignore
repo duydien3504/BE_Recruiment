@@ -56,3 +56,5 @@ nginx/
 # Temp
 tmp/
 temp/
+
+docker-compose.override.yml
